@@ -1,0 +1,4256 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💅 Nail Salon 勤怠管理</title>
+  <style>
+    /* ========================================
+       CSS Variables & Reset
+    ======================================== */
+    :root {
+      --pink-lightest: #fff0f6;
+      --pink-light:    #fce4ec;
+      --pink:          #f8bbd0;
+      --pink-mid:      #f48fb1;
+      --rose:          #d46b8a;
+      --rose-dark:     #b5516e;
+      --beige:         #fdf6f0;
+      --beige-dark:    #f5e6d3;
+      --gold:          #c9a96e;
+      --text:          #5a3f4a;
+      --text-light:    #9e8088;
+      --white:         #ffffff;
+      --shadow:        0 4px 18px rgba(212, 107, 138, 0.15);
+      --shadow-hover:  0 8px 28px rgba(212, 107, 138, 0.28);
+      --radius:        16px;
+      --radius-sm:     8px;
+      --radius-xs:     4px;
+      --success-bg:    #e8f5e9;
+      --success-text:  #2e7d32;
+      --error-bg:      #ffebee;
+      --error-text:    #c62828;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Kaku Gothic ProN',
+                   'Hiragino Sans', 'Yu Gothic UI', Meiryo, sans-serif;
+      background: var(--beige);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ========================================
+       Header
+    ======================================== */
+    header {
+      background: linear-gradient(135deg, #f9c8dc 0%, #fce4ec 60%, #fdf0e8 100%);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--pink);
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-brand .logo { font-size: 1.6rem; }
+
+    .header-brand h1 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--rose);
+      letter-spacing: 0.04em;
+      line-height: 1.2;
+    }
+
+    .header-brand .subtitle {
+      font-size: 0.7rem;
+      color: var(--text-light);
+      font-weight: 400;
+    }
+
+    /* ========================================
+       Buttons
+    ======================================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 50px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      letter-spacing: 0.02em;
+      text-decoration: none;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .btn:hover  { transform: translateY(-1px); box-shadow: var(--shadow-hover); }
+    .btn:active { transform: translateY(0); box-shadow: none; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-primary  { background: linear-gradient(135deg, var(--rose), var(--pink-mid)); color: #fff; }
+    .btn-secondary {
+      background: var(--white);
+      color: var(--rose);
+      border: 2px solid var(--pink-mid);
+    }
+    .btn-success  { background: linear-gradient(135deg, #66bb6a, #43a047); color: #fff; }
+    .btn-danger   { background: linear-gradient(135deg, #ef5350, #e53935); color: #fff; }
+    .btn-outline  { background: transparent; color: var(--text-light); border: 1px solid var(--beige-dark); }
+
+    .btn-sm  { padding: 6px 14px; font-size: 0.78rem; }
+    .btn-lg  { padding: 15px 30px; font-size: 1.05rem; }
+    .btn-xl  { padding: 18px 36px; font-size: 1.15rem; border-radius: 50px; }
+    .btn-block { width: 100%; border-radius: var(--radius-sm); }
+
+    /* Admin badge in header */
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.8);
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--rose);
+      border: 1px solid var(--pink);
+    }
+
+    /* ========================================
+       Navigation Tabs
+    ======================================== */
+    .nav-tabs {
+      display: flex;
+      background: var(--white);
+      border-bottom: 2px solid var(--pink-light);
+      overflow-x: auto;
+      scrollbar-width: none;
+      position: sticky;
+      top: 61px;
+      z-index: 90;
+    }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+
+    .nav-tab {
+      flex-shrink: 0;
+      padding: 13px 18px;
+      border: none;
+      background: none;
+      color: var(--text-light);
+      font-size: 0.86rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    .nav-tab.active { color: var(--rose); border-bottom-color: var(--rose); }
+    .nav-tab:hover:not(.active) { color: var(--rose); background: var(--pink-lightest); }
+
+    /* ========================================
+       Main Layout
+    ======================================== */
+    .main {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 20px 14px 40px;
+    }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ========================================
+       Cards
+    ======================================== */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--rose);
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--pink-light);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ========================================
+       Clock / Time Display
+    ======================================== */
+    .clock-display {
+      text-align: center;
+      padding: 16px 0 8px;
+    }
+
+    .clock-time {
+      font-size: 2.8rem;
+      font-weight: 800;
+      color: var(--rose);
+      letter-spacing: 0.08em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .clock-date {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      margin-top: 4px;
+    }
+
+    /* ========================================
+       Staff Selection (Clock section)
+    ======================================== */
+    .staff-selector-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .staff-select-btn {
+      padding: 14px 10px;
+      border: 2px solid var(--pink-light);
+      border-radius: var(--radius);
+      background: var(--white);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .staff-select-btn:hover   { border-color: var(--pink-mid); background: var(--pink-lightest); }
+    .staff-select-btn.selected {
+      border-color: var(--rose);
+      background: linear-gradient(135deg, var(--pink-lightest), var(--white));
+      color: var(--rose);
+      box-shadow: var(--shadow);
+    }
+
+    .staff-select-btn .s-status {
+      font-size: 0.68rem;
+      margin-top: 5px;
+    }
+
+    /* ========================================
+       Status Badge
+    ======================================== */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 50px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .badge-working  { background: #e8f5e9; color: #2e7d32; }
+    .badge-done     { background: #fce4ec; color: #880e4f; }
+    .badge-off      { background: #f5f5f5; color: #777; }
+    .badge-modified { background: var(--pink-light); color: var(--rose); }
+    .badge-inactive { background: #eeeeee; color: #9e9e9e; }
+    .badge-fulltime { background: #e3f2fd; color: #1565c0; }
+    .badge-parttime { background: #fff8e1; color: #e65100; }
+
+    /* ========================================
+       Clock Action Area
+    ======================================== */
+    .clock-action {
+      background: var(--beige);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-top: 4px;
+    }
+
+    .clock-action-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .selected-staff-name {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .clock-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* ========================================
+       Staff Management Cards
+    ======================================== */
+    .staff-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 12px;
+    }
+
+    .staff-card {
+      background: linear-gradient(160deg, #fff 60%, var(--pink-lightest));
+      border-radius: var(--radius);
+      padding: 16px;
+      border: 2px solid var(--pink-light);
+      transition: all 0.2s;
+    }
+    .staff-card:hover {
+      border-color: var(--pink-mid);
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+    }
+
+    .staff-card-name {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .staff-card-info {
+      font-size: 0.8rem;
+      color: var(--text-light);
+      line-height: 1.8;
+    }
+
+    .staff-card-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    /* ========================================
+       Alerts
+    ======================================== */
+    .alert {
+      padding: 11px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+      animation: fadeDown 0.25s ease;
+    }
+    .alert-success { background: var(--success-bg); color: var(--success-text); border-left: 4px solid #66bb6a; }
+    .alert-error   { background: var(--error-bg);   color: var(--error-text);   border-left: 4px solid #ef5350; }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ========================================
+       Forms
+    ======================================== */
+    .form-group { margin-bottom: 14px; }
+
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 5px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 11px 14px;
+      border: 2px solid var(--pink-light);
+      border-radius: var(--radius-sm);
+      font-size: 0.92rem;
+      color: var(--text);
+      background: var(--white);
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+      appearance: none;
+      font-family: inherit;
+    }
+    .form-control:focus { outline: none; border-color: var(--pink-mid); }
+    .form-control::placeholder { color: #ccc; }
+
+    select.form-control {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpolyline points='1,1 7,7 13,1' fill='none' stroke='%23d46b8a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+
+    .form-hint {
+      font-size: 0.75rem;
+      color: var(--text-light);
+      margin-top: 3px;
+    }
+
+    /* ========================================
+       Tables
+    ======================================== */
+    .table-wrap { overflow-x: auto; border-radius: var(--radius-sm); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+
+    thead th {
+      background: var(--pink-light);
+      color: var(--rose);
+      padding: 9px 6px;
+      text-align: left;
+      font-weight: 700;
+      border-bottom: 2px solid var(--pink-mid);
+    }
+
+    tbody tr { border-bottom: 1px solid var(--beige-dark); transition: background 0.12s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--pink-lightest); }
+    tbody td { padding: 9px 6px; color: var(--text); vertical-align: middle; }
+
+    tfoot td {
+      padding: 9px 10px;
+      font-weight: 700;
+      border-top: 2px solid var(--pink-mid);
+      background: var(--pink-lightest);
+    }
+
+    .num { text-align: right; }
+
+    /* ========================================
+       Monthly Summary Grid
+    ======================================== */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    /* Payslip summary: allow 2-col, with last item spanning full width */
+    .payslip-summary-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .summary-item {
+      background: var(--beige);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      text-align: center;
+      border: 1px solid var(--beige-dark);
+    }
+
+    .summary-label { font-size: 0.75rem; color: var(--text-light); margin-bottom: 4px; }
+    .summary-value { font-size: 1.25rem; font-weight: 800; color: var(--rose); }
+
+    .summary-item.highlight {
+      background: linear-gradient(135deg, var(--pink-light), var(--pink-lightest));
+      border-color: var(--pink);
+    }
+    .summary-item.highlight .summary-value { color: var(--rose-dark); }
+
+    /* ========================================
+       Modal
+    ======================================== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(80, 50, 60, 0.45);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      backdrop-filter: blur(2px);
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 24px 22px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 20px 60px rgba(80, 50, 60, 0.3);
+      animation: modalIn 0.25s ease;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.96) translateY(10px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .modal-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--rose);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid var(--pink-light);
+    }
+
+    /* ========================================
+       Payslip
+    ======================================== */
+    #payslip-preview {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      box-shadow: var(--shadow);
+      margin-top: 14px;
+      max-width: 900px;
+    }
+
+    .ps-doc-title {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: 0.25em;
+      color: #222;
+      margin-bottom: 6px;
+    }
+
+    .ps-doc-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 0.85rem;
+      color: #444;
+      padding-bottom: 10px;
+      border-bottom: 2.5px solid #333;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .ps-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      margin-bottom: 0;
+    }
+    .ps-2col .ps-table:first-child { border-right: none; }
+
+    .ps-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 0;
+      font-size: 0.86rem;
+    }
+    .ps-table + .ps-table { margin-top: 0; }
+    .ps-table th, .ps-table td { border: 1px solid #bbb; padding: 5px 9px; }
+
+    .ps-section-hd {
+      background: #333 !important;
+      color: #fff !important;
+      text-align: center;
+      font-size: 0.8rem;
+      letter-spacing: 0.18em;
+      padding: 5px;
+    }
+
+    .ps-item-lbl { color: #555; font-size: 0.82rem; white-space: nowrap; width: 118px; }
+    .ps-item-val { text-align: right; font-weight: 600; color: #222; }
+    .ps-item-val.num { font-variant-numeric: tabular-nums; }
+
+    .ps-total-row td { background: #ebebeb; font-weight: 700; font-size: 0.9rem; }
+
+    .ps-na-badge {
+      display: inline-block;
+      font-size: 0.62rem;
+      background: #ddd; color: #999;
+      border-radius: 3px; padding: 1px 4px;
+      margin-left: 4px; font-weight: 400;
+    }
+
+    .ps-edit-input {
+      width: 100%; text-align: right;
+      border: 1px solid #bbb; border-radius: 3px;
+      padding: 2px 6px; font-size: 0.86rem;
+      font-family: inherit; color: #222; background: #fff;
+      box-sizing: border-box;
+    }
+    .ps-edit-input:focus { outline: none; border-color: var(--rose); }
+    .ps-disabled-input   { background: #f2f2f2 !important; color: #bbb !important; cursor: not-allowed; }
+
+    .ps-summary-block {
+      margin-top: 0;
+      border-top: none;
+    }
+
+    .ps-note-area {
+      display: flex; gap: 10px; align-items: flex-start;
+      margin-top: 10px;
+    }
+    .ps-note-input {
+      flex: 1; border: 1px solid #bbb; border-radius: 3px;
+      padding: 5px 8px; font-size: 0.84rem; font-family: inherit; resize: vertical;
+    }
+
+    .ps-actions {
+      display: flex; gap: 10px; justify-content: flex-end;
+      margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;
+    }
+
+    .payslip-detail-title {
+      font-size: 0.88rem; font-weight: 700; color: #555; margin-bottom: 8px;
+    }
+
+    .payslip-footer-note {
+      margin-top: 16px; font-size: 0.7rem; color: #aaa;
+      text-align: center; border-top: 1px solid #eee; padding-top: 10px;
+    }
+
+    /* ========================================
+       Divider & Utilities
+    ======================================== */
+    .divider { height: 1px; background: var(--pink-light); margin: 14px 0; }
+
+    .flex             { display: flex; }
+    .flex-wrap        { flex-wrap: wrap; }
+    .items-center     { align-items: center; }
+    .justify-between  { justify-content: space-between; }
+    .justify-end      { justify-content: flex-end; }
+    .gap-1            { gap: 6px; }
+    .gap-2            { gap: 10px; }
+    .gap-3            { gap: 14px; }
+    .mt-2             { margin-top: 10px; }
+    .mt-3             { margin-top: 14px; }
+    .mb-2             { margin-bottom: 10px; }
+    .mb-3             { margin-bottom: 14px; }
+    .text-right       { text-align: right; }
+    .text-center      { text-align: center; }
+    .text-sm          { font-size: 0.8rem; }
+    .text-muted       { color: var(--text-light); }
+    .font-bold        { font-weight: 700; }
+    .hidden           { display: none !important; }
+    .w-full           { width: 100%; }
+
+    /* Filter row */
+    .filter-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .filter-row .form-control { flex: 1; min-width: 130px; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text-light);
+    }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .empty-state p { font-size: 0.88rem; }
+
+    /* ========================================
+       Print Styles
+    ======================================== */
+    @media print {
+      * { visibility: hidden; }
+      #payslip-preview, #payslip-preview * { visibility: visible; }
+      #payslip-preview {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 20mm 15mm;
+        background: white;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      @page { size: A4; margin: 0; }
+
+      #payslip-preview { padding: 14mm 12mm; }
+      #payslip-preview table { font-size: 9pt; }
+      #payslip-preview .ps-doc-title { font-size: 16pt; }
+
+      #payslip-preview .ps-section-hd {
+        background: #444 !important; color: #fff !important;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
+      #payslip-preview .ps-total-row td {
+        background: #e8e8e8 !important;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
+      /* Inputs render as plain text */
+      #payslip-preview input.ps-edit-input {
+        border: none !important; background: transparent !important;
+        padding: 0 !important; -webkit-appearance: none; appearance: none;
+      }
+      #payslip-preview textarea.ps-note-input {
+        border: none !important; background: transparent !important;
+        padding: 0 !important; resize: none;
+      }
+      .ps-actions, #alert-payslip-actions { display: none !important; }
+    }
+
+    /* ========================================
+       Responsive
+    ======================================== */
+    @media (max-width: 480px) {
+      .clock-time { font-size: 2.2rem; }
+      .staff-grid { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+      .payslip-summary-grid { grid-template-columns: 1fr 1fr; }
+      .clock-btns { grid-template-columns: 1fr 1fr; }
+      #payslip-preview { padding: 20px 14px; }
+    }
+
+    /* Today log row with working state */
+    tr.row-working { background: #f0fff4; }
+    tr.row-working:hover { background: #e8f5e9; }
+
+    /* Inline number input in edit table */
+    .inline-num {
+      width: 76px;
+      padding: 4px 7px;
+      border: 1px solid var(--pink-light);
+      border-radius: var(--radius-xs);
+      font-size: 0.8rem;
+      font-family: inherit;
+      color: var(--text);
+    }
+    .inline-num:focus { outline: none; border-color: var(--pink-mid); }
+
+    /* ========================================
+       Loading Overlay & Sync Toast
+    ======================================== */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(253, 246, 240, 0.92);
+      z-index: 9000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      backdrop-filter: blur(3px);
+    }
+    .loading-overlay.hidden { display: none; }
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--pink-light);
+      border-top-color: var(--rose);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-msg {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--rose);
+    }
+
+    /* Sync toast (non-blocking notification) */
+    .sync-toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 8000;
+      padding: 10px 18px;
+      border-radius: 50px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      box-shadow: var(--shadow-hover);
+      animation: slideUp 0.2s ease;
+      max-width: 320px;
+    }
+    .sync-toast.hidden { display: none; }
+    .sync-toast.syncing { background: #fff8e1; color: #e65100; border: 1px solid #ffe082; }
+    .sync-toast.error   { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+    .sync-toast.ok      { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+
+    /* ========================================
+       Analysis Tab
+    ======================================== */
+
+    /* Sub-tab switcher */
+    .analysis-subtabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .analysis-subtab {
+      padding: 7px 20px;
+      border-radius: 50px;
+      border: 2px solid var(--pink-light);
+      background: var(--white);
+      color: var(--text-light);
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .analysis-subtab.active {
+      background: linear-gradient(135deg, var(--rose), var(--pink-mid));
+      border-color: transparent;
+      color: #fff;
+    }
+    .analysis-subtab:hover:not(.active) { border-color: var(--pink-mid); color: var(--rose); }
+
+    /* KPI cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .kpi-card {
+      background: var(--beige);
+      border-radius: var(--radius-sm);
+      padding: 14px 12px;
+      text-align: center;
+      border: 1px solid var(--beige-dark);
+    }
+    .kpi-label { font-size: 0.7rem;  color: var(--text-light); margin-bottom: 4px; }
+    .kpi-value { font-size: 1.1rem;  font-weight: 800; color: var(--rose); }
+    .kpi-sub   { font-size: 0.66rem; color: var(--text-light); margin-top: 3px; }
+
+    /* Bar charts */
+    .bar-chart { display: flex; flex-direction: column; gap: 5px; }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.76rem;
+    }
+    .bar-label {
+      flex: 0 0 38px;
+      text-align: right;
+      color: var(--text-light);
+      font-size: 0.7rem;
+      white-space: nowrap;
+    }
+    .bar-label-lg { flex: 0 0 80px; text-align: left; }
+
+    .bar-track {
+      flex: 1;
+      height: 18px;
+      background: var(--beige-dark);
+      border-radius: 50px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 50px;
+      transition: width 0.45s ease;
+      min-width: 2px;
+    }
+    .bar-val {
+      flex: 0 0 52px;
+      font-weight: 700;
+      color: var(--text);
+      font-size: 0.76rem;
+    }
+    .bar-pct {
+      flex: 0 0 38px;
+      font-size: 0.7rem;
+      color: var(--text-light);
+      text-align: right;
+    }
+
+    /* Bar fill color variants */
+    .bf-red   { background: linear-gradient(90deg,#ef9a9a,#e53935); }
+    .bf-green { background: linear-gradient(90deg,#a5d6a7,#43a047); }
+    .bf-blue  { background: linear-gradient(90deg,#90caf9,#1565c0); }
+    .bf-rose  { background: linear-gradient(90deg,var(--pink),var(--rose)); }
+    .bf-gold  { background: linear-gradient(90deg,#ffe082,#f9a825); }
+    .bf-teal  { background: linear-gradient(90deg,#80cbc4,#00695c); }
+
+    /* Section heading inside analysis */
+    .an-section {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: var(--rose);
+      margin: 18px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--pink-light);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Color legend row */
+    .color-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 0.75rem;
+      color: var(--text-light);
+      margin-bottom: 12px;
+    }
+    .color-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .color-swatch {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ========================================
+       Shift Calendar
+    ======================================== */
+    .shift-calendar { overflow-x: auto; }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(78px, 1fr));
+      gap: 3px;
+      min-width: 540px;
+    }
+
+    .cal-head {
+      background: var(--pink-light);
+      color: var(--rose);
+      font-weight: 800;
+      font-size: 0.75rem;
+      text-align: center;
+      padding: 7px 4px;
+      border-radius: var(--radius-xs);
+    }
+    .cal-head.sun { color: #e53935; background: #ffebee; }
+    .cal-head.sat { color: #1565c0; background: #e3f2fd; }
+
+    .cal-day {
+      background: var(--white);
+      border: 1.5px solid var(--beige-dark);
+      border-radius: var(--radius-xs);
+      padding: 5px 4px 4px;
+      min-height: 82px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      transition: border-color 0.15s;
+    }
+    .cal-day:hover:not(.cal-empty) { border-color: var(--pink-mid); }
+    .cal-empty    { background: transparent; border-color: transparent; min-height: 82px; }
+    .cal-weekend  { background: #fafafa; }
+    .cal-today    { border-color: var(--rose) !important; border-width: 2px; }
+    .cal-confirmed { background: linear-gradient(160deg, #f0fff4, #fafff6); }
+
+    .cal-date-num {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--text-light);
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+    .cal-day.cal-sun .cal-date-num { color: #e53935; }
+    .cal-day.cal-sat .cal-date-num { color: #1565c0; }
+
+    .shift-tags { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+
+    .shift-tag {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 4px;
+      border-radius: 3px;
+      line-height: 1.5;
+      gap: 2px;
+    }
+    .shift-tag-remove {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: inherit;
+      opacity: 0.55;
+      padding: 0;
+      font-size: 0.72rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .shift-tag-remove:hover { opacity: 1; }
+
+    .shift-add-btn {
+      width: 100%;
+      border: 1px dashed var(--pink-mid);
+      background: none;
+      border-radius: 3px;
+      color: var(--rose);
+      font-size: 0.72rem;
+      cursor: pointer;
+      padding: 2px 0;
+      margin-top: auto;
+      transition: background 0.12s;
+    }
+    .shift-add-btn:hover { background: var(--pink-lightest); }
+
+    /* Status pill */
+    .shift-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 50px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .shift-status.proposal  { background: #fff8e1; color: #e65100; border: 1px solid #ffe082; }
+    .shift-status.confirmed { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+
+    /* Inline staff dropdown */
+    .shift-day-wrap { position: relative; }
+
+    .shift-dropdown {
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 0;
+      z-index: 200;
+      background: var(--white);
+      border: 1.5px solid var(--pink-mid);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-hover);
+      min-width: 120px;
+      padding: 3px 0;
+    }
+    .shift-dropdown button {
+      display: block;
+      width: 100%;
+      padding: 7px 12px;
+      border: none;
+      background: none;
+      text-align: left;
+      font-size: 0.82rem;
+      font-family: inherit;
+      cursor: pointer;
+      color: var(--text);
+    }
+    .shift-dropdown button:hover { background: var(--pink-lightest); color: var(--rose); }
+
+    /* Summary bar below calendar */
+    .shift-summary-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 0 4px;
+      font-size: 0.8rem;
+      color: var(--text-light);
+    }
+    .shift-summary-item {
+      background: var(--beige);
+      padding: 4px 10px;
+      border-radius: 50px;
+      font-weight: 600;
+    }
+    .shift-summary-item span { color: var(--rose); font-weight: 800; }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay (shown during initial GAS fetch) -->
+<div id="loading-overlay" class="loading-overlay">
+  <div class="loading-spinner"></div>
+  <p class="loading-msg" id="loading-msg">データを読み込んでいます...</p>
+</div>
+
+<!-- Sync toast (shown during / after background GAS calls) -->
+<div id="sync-toast" class="sync-toast hidden"></div>
+
+<!-- ============================================================
+     HEADER
+============================================================ -->
+<header>
+  <div class="header-brand">
+    <span class="logo">💅</span>
+    <div>
+      <h1>Nail Salon</h1>
+      <div class="subtitle">勤怠管理システム</div>
+    </div>
+  </div>
+  <div id="header-admin-area"><!-- JS --></div>
+</header>
+
+<!-- ============================================================
+     NAVIGATION TABS
+============================================================ -->
+<nav class="nav-tabs" id="nav-tabs">
+  <button class="nav-tab active" data-tab="clock">🕐 打刻</button>
+  <button class="nav-tab admin-only hidden" data-tab="staff">👥 スタッフ管理</button>
+  <button class="nav-tab admin-only hidden" data-tab="attendance">📋 勤怠管理</button>
+  <button class="nav-tab admin-only hidden" data-tab="payslip">💴 給与明細</button>
+  <button class="nav-tab admin-only hidden" data-tab="shift">📅 シフト提案</button>
+  <button class="nav-tab admin-only hidden" data-tab="analysis">📊 分析</button>
+</nav>
+
+<!-- ============================================================
+     MAIN CONTENT
+============================================================ -->
+<main class="main">
+
+  <!-- ==================== CLOCK TAB ==================== -->
+  <section id="tab-clock" class="section active">
+
+    <!-- Time display -->
+    <div class="card">
+      <div class="clock-display">
+        <div class="clock-time" id="clock-time">--:--:--</div>
+        <div class="clock-date" id="clock-date"></div>
+      </div>
+    </div>
+
+    <!-- Staff selection & punch -->
+    <div class="card">
+      <div class="card-title">打刻</div>
+      <div id="alert-clock"></div>
+
+      <p class="text-sm text-muted mb-2">スタッフを選択してください</p>
+      <div class="staff-selector-grid" id="clock-staff-grid">
+        <!-- filled by JS -->
+      </div>
+
+      <!-- Clock in/out buttons (shown after staff selected) -->
+      <div id="clock-action-area" class="hidden">
+        <div class="clock-action">
+          <div class="clock-action-header">
+            <span class="selected-staff-name" id="action-staff-name"></span>
+            <span class="badge" id="action-status-badge"></span>
+          </div>
+          <div class="clock-btns">
+            <button class="btn btn-success btn-xl" id="btn-clock-in" onclick="doClock('in')">
+              出勤
+            </button>
+            <button class="btn btn-danger btn-xl" id="btn-clock-out" onclick="doClock('out')">
+              退勤
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's log table (admin only) -->
+    <div class="card admin-only hidden" id="today-log-card">
+      <div class="card-title">本日の打刻状況</div>
+      <div id="today-log-table"></div>
+    </div>
+
+  </section>
+
+  <!-- ==================== STAFF TAB ==================== -->
+  <section id="tab-staff" class="section">
+    <div class="card">
+      <div class="flex items-center justify-between mb-3">
+        <div class="card-title" style="margin:0;padding:0;border:none;">スタッフ一覧</div>
+        <button class="btn btn-primary btn-sm" onclick="openStaffModal(null)">＋ スタッフ追加</button>
+      </div>
+      <div id="alert-staff"></div>
+      <div class="staff-grid" id="staff-grid"><!-- JS --></div>
+    </div>
+  </section>
+
+  <!-- ==================== ATTENDANCE TAB ==================== -->
+  <section id="tab-attendance" class="section">
+    <div class="card">
+      <div class="card-title">勤怠一覧・修正</div>
+
+      <!-- Filters -->
+      <div class="filter-row">
+        <select class="form-control" id="att-staff-filter" onchange="renderAttendance()">
+          <option value="">全スタッフ</option>
+        </select>
+        <input type="month" class="form-control" id="att-month-filter" onchange="renderAttendance()">
+        <button class="btn btn-outline btn-sm" onclick="exportAttendanceCSV()">📥 CSVエクスポート</button>
+        <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+          📤 CSVインポート
+          <input type="file" accept=".csv" style="display:none;" onchange="importAttendanceCSV(event)">
+        </label>
+      </div>
+
+      <div id="alert-attendance"></div>
+      <div id="attendance-table"></div>
+
+      <!-- Monthly summary (visible when staff+month selected) -->
+      <div id="monthly-summary" class="hidden mt-3">
+        <div class="divider"></div>
+        <div class="card-title">月次集計</div>
+        <div class="summary-grid" id="monthly-summary-grid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PAYSLIP TAB ==================== -->
+  <section id="tab-payslip" class="section">
+    <!-- Selector -->
+    <div class="card no-print">
+      <div class="card-title">給与明細発行</div>
+      <div class="form-group">
+        <label>スタッフ</label>
+        <select class="form-control" id="payslip-staff-sel"></select>
+      </div>
+      <div class="form-group">
+        <label>対象年月</label>
+        <input type="month" class="form-control" id="payslip-month-sel">
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <button class="btn btn-primary" onclick="generatePayslip()">明細表示</button>
+        <button class="btn btn-secondary hidden" id="btn-print" onclick="window.print()">
+          🖨 PDFダウンロード
+        </button>
+      </div>
+    </div>
+
+    <!-- Payslip preview (filled by JS) -->
+    <div id="payslip-preview" class="hidden"></div>
+
+    <!-- Data management -->
+    <div class="card no-print mt-3">
+      <div class="card-title">データ管理</div>
+      <div class="flex gap-2 flex-wrap">
+        <button class="btn btn-outline btn-sm" onclick="exportData()">📤 JSONエクスポート</button>
+        <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+          📥 JSONインポート
+          <input type="file" accept=".json" style="display:none;" onchange="importData(event)">
+        </label>
+      </div>
+      <p class="text-sm text-muted mt-2">※インポートすると現在のデータは上書きされます</p>
+    </div>
+  </section>
+
+  <!-- ==================== SHIFT TAB ==================== -->
+  <section id="tab-shift" class="section">
+
+    <!-- Controls card -->
+    <div class="card">
+      <div class="card-title">📅 シフト自動提案</div>
+
+      <div class="flex items-center gap-2 flex-wrap mb-3">
+        <input type="month" class="form-control" id="shift-month-sel"
+               style="flex:0 0 auto;width:160px;" onchange="renderShiftTab()">
+        <button class="btn btn-primary btn-sm" onclick="generateShift()">✨ シフトを自動生成</button>
+        <div id="shift-status-badge"></div>
+      </div>
+
+      <div id="alert-shift"></div>
+
+      <!-- Calendar area -->
+      <div id="shift-calendar-area">
+        <div class="empty-state">
+          <div class="icon">📅</div>
+          <p>対象月を選択して「シフトを自動生成」を押してください</p>
+        </div>
+      </div>
+
+      <!-- Action buttons (shown after data exists) -->
+      <div id="shift-actions" class="hidden mt-3 flex gap-2 flex-wrap"></div>
+    </div>
+
+    <!-- Staff color legend -->
+    <div class="card" id="shift-legend-card" style="display:none;">
+      <div class="card-title">スタッフ凡例</div>
+      <div id="shift-legend-content" class="flex gap-2 flex-wrap"></div>
+    </div>
+
+  </section>
+
+  <!-- ==================== ANALYSIS TAB ==================== -->
+  <section id="tab-analysis" class="section">
+    <div class="card">
+      <div class="card-title">📊 分析</div>
+
+      <!-- Month selector -->
+      <div class="flex items-center gap-2 flex-wrap mb-3">
+        <input type="month" class="form-control"
+               id="analysis-month-sel"
+               style="flex:0 0 auto;width:160px;"
+               onchange="renderAnalysisTab()">
+      </div>
+
+      <!-- Sub-tab switcher -->
+      <div class="analysis-subtabs">
+        <button class="analysis-subtab active"
+                data-subtab="staffing"
+                onclick="switchAnalysisSubTab('staffing')">
+          👥 人員バランス
+        </button>
+        <button class="analysis-subtab"
+                data-subtab="cost"
+                onclick="switchAnalysisSubTab('cost')">
+          💴 人件費分析
+        </button>
+      </div>
+
+      <!-- Staffing balance content -->
+      <div id="analysis-staffing">
+        <div class="empty-state">
+          <div class="icon">📅</div>
+          <p>対象月を選択してください</p>
+        </div>
+      </div>
+
+      <!-- Labor cost content -->
+      <div id="analysis-cost" class="hidden">
+        <div class="empty-state">
+          <div class="icon">💴</div>
+          <p>対象月を選択してください</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============================================================
+     MODALS
+============================================================ -->
+
+<!-- Login Modal -->
+<div class="modal-overlay" id="modal-login">
+  <div class="modal">
+    <div class="modal-title">🔐 管理者ログイン</div>
+    <div id="alert-login"></div>
+    <div class="form-group">
+      <label>パスワード</label>
+      <input type="password" class="form-control" id="login-pw"
+             placeholder="パスワードを入力"
+             onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-login')">キャンセル</button>
+      <button class="btn btn-primary" onclick="doLogin()">ログイン</button>
+    </div>
+  </div>
+</div>
+
+<!-- Staff Modal -->
+<div class="modal-overlay" id="modal-staff">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-title" id="modal-staff-title">👤 スタッフ追加</div>
+    <div id="alert-staff-modal"></div>
+    <input type="hidden" id="staff-edit-id">
+
+    <!-- 基本情報 -->
+    <p class="text-sm font-bold text-muted mb-2">── 基本情報</p>
+    <div class="form-group">
+      <label>名前 <span style="color:var(--rose)">*</span></label>
+      <input type="text" class="form-control" id="staff-name-input" placeholder="山田花子">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="form-group">
+        <label>稼働ステータス <span style="color:var(--rose)">*</span></label>
+        <select class="form-control" id="staff-status-input">
+          <option value="在籍中">在籍中</option>
+          <option value="非稼働">非稼働</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>雇用区分 <span style="color:var(--rose)">*</span></label>
+        <select class="form-control" id="staff-employment-input" onchange="onEmploymentChange()">
+          <option value="常勤">常勤</option>
+          <option value="非常勤">非常勤</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" id="staff-weekdays-group">
+      <label>週勤務日数 <span style="color:var(--rose)">*</span>（非常勤のみ）</label>
+      <input type="number" class="form-control" id="staff-weekdays-input" placeholder="1〜4" min="1" max="4">
+    </div>
+
+    <!-- 給与情報 -->
+    <p class="text-sm font-bold text-muted mb-2">── 給与情報</p>
+    <div class="form-group" id="staff-paytype-group">
+      <label>給与タイプ</label>
+      <select class="form-control" id="staff-paytype-input" onchange="onPayTypeChange()">
+        <option value="hourly">時給制</option>
+        <option value="monthly">月給制</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="form-group" id="staff-hourly-group">
+        <label>基本時給（円）<span style="color:var(--rose)">*</span></label>
+        <input type="number" class="form-control" id="staff-hourly-input" placeholder="1200" min="0">
+      </div>
+      <div class="form-group hidden" id="staff-monthly-group">
+        <label>月給（円）<span style="color:var(--rose)">*</span></label>
+        <input type="number" class="form-control" id="staff-monthly-input" placeholder="250000" min="0">
+      </div>
+      <div class="form-group">
+        <label>基本交通費（円/日）</label>
+        <input type="number" class="form-control" id="staff-transport-input" placeholder="500" min="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>定期代（円/月）</label>
+      <input type="number" class="form-control" id="staff-commute-input" placeholder="10000" min="0">
+      <div class="form-hint">月次集計に別途加算されます</div>
+    </div>
+
+    <!-- 個人情報 -->
+    <p class="text-sm font-bold text-muted mb-2">── 個人情報（管理用）</p>
+    <div class="form-group">
+      <label>通勤経路</label>
+      <input type="text" class="form-control" id="staff-route-input" placeholder="○○線 △△駅〜□□駅">
+    </div>
+    <div class="form-group">
+      <label>住所</label>
+      <input type="text" class="form-control" id="staff-address-input" placeholder="東京都○○区...">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="form-group">
+        <label>メールアドレス</label>
+        <input type="email" class="form-control" id="staff-email-input" placeholder="example@mail.com">
+      </div>
+      <div class="form-group">
+        <label>電話番号</label>
+        <input type="tel" class="form-control" id="staff-phone-input" placeholder="090-1234-5678">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>メモ</label>
+      <textarea class="form-control" id="staff-memo-input" rows="2" placeholder="自由記入欄" style="resize:vertical;"></textarea>
+    </div>
+
+    <!-- 保険・税務情報 -->
+    <p class="text-sm font-bold text-muted mb-2">── 保険・税務情報</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="form-group">
+        <label>生年月日</label>
+        <input type="date" class="form-control" id="staff-birthdate-input">
+        <div class="form-hint">介護保険の対象判定（40歳以上）</div>
+      </div>
+      <div class="form-group">
+        <label>扶養家族数</label>
+        <input type="number" class="form-control" id="staff-dependents-input" placeholder="0" min="0" max="7">
+        <div class="form-hint">所得税計算に使用</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>標準報酬月額（円）</label>
+      <input type="number" class="form-control" id="staff-std-salary-input" placeholder="例：200000" min="0">
+      <div class="form-hint">健康保険・厚生年金の計算基礎</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="form-group">
+        <label style="margin-bottom:6px;">社会保険</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
+          <input type="checkbox" id="staff-social-ins-input">
+          <span>社会保険適用</span>
+        </label>
+      </div>
+      <div class="form-group">
+        <label style="margin-bottom:6px;">雇用保険</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
+          <input type="checkbox" id="staff-employ-ins-input">
+          <span>雇用保険適用</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-staff')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveStaffFromModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Attendance Modal -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal">
+    <div class="modal-title">✏️ 勤怠修正</div>
+    <div id="alert-edit"></div>
+    <input type="hidden" id="edit-log-id">
+    <div class="form-group">
+      <label>出勤時刻</label>
+      <input type="datetime-local" class="form-control" id="edit-clock-in">
+    </div>
+    <div class="form-group">
+      <label>退勤時刻</label>
+      <input type="datetime-local" class="form-control" id="edit-clock-out">
+    </div>
+    <div class="divider"></div>
+    <p class="text-sm text-muted mb-2">※修正時給・修正給与はどちらか一方のみ入力可</p>
+    <div class="form-group">
+      <label>修正時給（円）</label>
+      <input type="number" class="form-control" id="edit-hourly" placeholder="空欄=基本時給を使用" min="0">
+    </div>
+    <div class="form-group">
+      <label>修正給与（円）</label>
+      <input type="number" class="form-control" id="edit-wage" placeholder="空欄=時給から自動計算" min="0">
+    </div>
+    <div class="form-group">
+      <label>修正交通費（円）</label>
+      <input type="number" class="form-control" id="edit-transport" placeholder="空欄=基本交通費を使用" min="0">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-edit')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveEditFromModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+<script>
+'use strict';
+
+/* ============================================================
+   Constants
+============================================================ */
+const ADMIN_PW = '1234';
+const GAS_URL  = 'https://script.google.com/macros/s/AKfycbzaqPEJHTtxNy-OoCvyfoMUPNBL6T_6rR2tC6y2lxUER4jkSEWMX1GS_t9aar0bGjDG/exec';
+
+/* ============================================================
+   Storage helpers
+============================================================ */
+/* ---- In-memory cache (source of truth for rendering) ---- */
+const _cache = { staff: [], logs: [], shifts: {}, payslips: {} };
+
+function loadStaff()    { return _cache.staff.slice(); }
+function saveStaff(d)   { _cache.staff    = d; }
+function loadLogs()     { return _cache.logs.slice(); }
+function saveLogs(d)    { _cache.logs     = d; }
+function loadShifts()   { return _cache.shifts; }
+function saveShifts(d)  { _cache.shifts   = d; }
+function loadPayslips() { return { ..._cache.payslips }; }
+function savePayslips(d){ _cache.payslips = d; }
+
+function isAdmin()     { return sessionStorage.getItem('ns_admin') === '1'; }
+function setAdmin(v)   {
+  if (v) sessionStorage.setItem('ns_admin', '1');
+  else   sessionStorage.removeItem('ns_admin');
+}
+
+/* ============================================================
+   ID generator
+============================================================ */
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+}
+
+/* ============================================================
+   Date / Time utilities
+============================================================ */
+
+/* ============================================================
+   Insurance & Tax Calculations
+============================================================ */
+
+/** Returns the person's age as of today, or null if birthdate is absent/invalid */
+function calcAge(birthdate) {
+  if (!birthdate) return null;
+  const b = new Date(birthdate);
+  if (isNaN(b.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  return age;
+}
+
+/**
+ * 2024年(令和6年) 源泉徴収税額表 月額表 甲欄 近似計算
+ * 課税対象額(月額) と 扶養家族数 から源泉所得税を返す
+ */
+function calcIncomeTax(taxableMonthly, deps) {
+  deps = Math.min(Math.max(0, Math.floor(deps || 0)), 7);
+  if (taxableMonthly <= 0) return 0;
+  // 年収換算 → 基礎控除(48万)+扶養控除(38万×人数)差引 → 速算表 → 復興特別所得税2.1% → 月額
+  const annual         = taxableMonthly * 12;
+  const totalDeduction = 480000 + deps * 380000;
+  const taxableAnnual  = Math.max(0, Math.floor((annual - totalDeduction) / 1000) * 1000);
+  if (taxableAnnual <= 0) return 0;
+  let tax;
+  if      (taxableAnnual <=  1950000) tax = taxableAnnual * 0.05;
+  else if (taxableAnnual <=  3300000) tax = taxableAnnual * 0.10 -    97500;
+  else if (taxableAnnual <=  6950000) tax = taxableAnnual * 0.20 -   427500;
+  else if (taxableAnnual <=  9000000) tax = taxableAnnual * 0.23 -   636000;
+  else if (taxableAnnual <= 18000000) tax = taxableAnnual * 0.33 -  1536000;
+  else if (taxableAnnual <= 40000000) tax = taxableAnnual * 0.40 -  2796000;
+  else                                tax = taxableAnnual * 0.45 -  4796000;
+  tax *= 1.021; // 復興特別所得税
+  return Math.max(0, Math.floor(tax / 12));
+}
+
+/**
+ * Calculate all deduction amounts for a staff member in a given month.
+ * @param {Object} staff  - staff record
+ * @param {number} gross  - 支給額合計 (gross earnings for the month)
+ * @returns {{health,care,pension,employ,incomeTax,socialTotal}}
+ */
+function calcDeductions(staff, gross) {
+  const stdSalary = staff.stdSalary || 0;
+  const deps      = staff.dependents || 0;
+  const si        = !!staff.socialIns;
+  const ei        = !!staff.employIns;
+  const age       = calcAge(staff.birthdate);
+
+  const health  = si ? Math.round(stdSalary * 0.04985) : 0;
+  const care    = si && age !== null && age >= 40 ? Math.round(stdSalary * 0.009) : 0;
+  const pension = si ? Math.round(stdSalary * 0.0915)  : 0;
+  const employ  = ei ? Math.round(gross * 0.006) : 0;
+
+  const socialTotal = health + care + pension;
+  const taxable     = Math.max(0, gross - employ - socialTotal);
+  const incomeTax   = calcIncomeTax(taxable, deps);
+
+  return { health, care, pension, employ, incomeTax, socialTotal };
+}
+
+/**
+ * Round clock-in time UP to nearest :00 or :30
+ * 00    → :00
+ * 01-29 → :30
+ * 30    → :30
+ * 31-59 → next :00
+ */
+function roundClockIn(isoStr) {
+  const d = new Date(isoStr);
+  const min = d.getMinutes();
+  if (min === 0)        { /* as-is */ }
+  else if (min <= 29)   { d.setMinutes(30, 0, 0); }
+  else if (min === 30)  { /* as-is */ }
+  else                  { d.setHours(d.getHours() + 1, 0, 0, 0); }
+  return d;
+}
+
+/**
+ * Round clock-out time DOWN to nearest :00 or :30
+ * 00    → :00
+ * 01-29 → :00
+ * 30    → :30
+ * 31-59 → :30
+ */
+function roundClockOut(isoStr) {
+  const d = new Date(isoStr);
+  const min = d.getMinutes();
+  if (min === 0)        { /* as-is */ }
+  else if (min <= 29)   { d.setMinutes(0, 0, 0); }
+  else if (min === 30)  { /* as-is */ }
+  else                  { d.setMinutes(30, 0, 0); }
+  return d;
+}
+
+/**
+ * Calculate net work hours for a log entry
+ * (uses rounded times, then subtracts break)
+ */
+function calcWorkHours(clockIn, clockOut) {
+  if (!clockIn || !clockOut) return 0;
+  const inRounded  = roundClockIn(clockIn);
+  const outRounded = roundClockOut(clockOut);
+  const diffMs = outRounded - inRounded;
+  if (diffMs <= 0) return 0;
+  const diffH = diffMs / 3_600_000;
+
+  let breakH = 0;
+  if      (diffH > 8) breakH = 1.0;
+  else if (diffH > 6) breakH = 0.75;
+
+  return Math.max(0, diffH - breakH);
+}
+
+/**
+ * Calculate wage for a log entry given its staff record.
+ * Priority: adjustedWage > adjustedHourlyRate × hours > hourlyRate × hours
+ */
+function calcWage(log, staff) {
+  if (!log.clockOut || !staff) return 0;
+  if (hasValue(log.adjustedWage)) return parseFloat(log.adjustedWage);
+  const d = calcPayDetails(log, staff);
+  return (d.basicPay || 0) + (d.overtimePay || 0) + (d.nightPay || 0);
+}
+
+/**
+ * Calculate transport for a log entry.
+ * Only paid when clocked out (i.e., actually worked).
+ */
+function calcTransport(log, staff) {
+  if (!log.clockOut) return 0;
+  if (hasValue(log.adjustedTransport)) return parseFloat(log.adjustedTransport);
+  return staff ? (staff.dailyTransport || 0) : 0;
+}
+
+/**
+ * Calculate night-shift hours (22:00–05:00) within a [inDate, outDate] window.
+ * Both arguments must be Date objects (already rounded).
+ */
+function calcNightHours(inDate, outDate) {
+  if (!inDate || !outDate || outDate <= inDate) return 0;
+  const shiftStart = inDate.getTime();
+  const shiftEnd   = outDate.getTime();
+  let nightMs = 0;
+  // Start checking from the day before inDate so 00:00-05:00 of inDate is covered
+  const startCheck = new Date(inDate);
+  startCheck.setDate(startCheck.getDate() - 1);
+  startCheck.setHours(0, 0, 0, 0);
+  const endCheck = new Date(outDate);
+  endCheck.setHours(0, 0, 0, 0);
+  for (let d = new Date(startCheck); d <= endCheck; d.setDate(d.getDate() + 1)) {
+    const ns = new Date(d); ns.setHours(22, 0, 0, 0);
+    const ne = new Date(d); ne.setDate(ne.getDate() + 1); ne.setHours(5, 0, 0, 0);
+    const os = Math.max(shiftStart, ns.getTime());
+    const oe = Math.min(shiftEnd,   ne.getTime());
+    if (oe > os) nightMs += oe - os;
+  }
+  return nightMs / 3_600_000;
+}
+
+/**
+ * Comprehensive pay breakdown for one log entry.
+ * Returns null fields when clockOut is absent.
+ */
+function calcPayDetails(log, staff) {
+  const r = {
+    roundedIn: null, roundedOut: null,
+    rawH: null, breakH: null, netH: null,
+    overtimeH: null, nightH: null,
+    baseRate: null, dayRate: null, appliedRate: null,
+    basicPay: null, overtimePay: null, nightPay: null,
+    transport: null, dayTotal: null,
+  };
+  if (!log.clockOut || !staff) return r;
+
+  const ri = roundClockIn(log.clockIn);
+  const ro = roundClockOut(log.clockOut);
+  r.roundedIn  = ri;
+  r.roundedOut = ro;
+
+  const diffMs = ro - ri;
+  if (diffMs <= 0) return r;
+
+  const rawH    = diffMs / 3_600_000;
+  const breakH  = rawH > 8 ? 1.0 : rawH > 6 ? 0.75 : 0;
+  const netH    = Math.max(0, rawH - breakH);
+  const overH   = Math.max(0, netH - 8);
+  const nightH  = calcNightHours(ri, ro);
+
+  r.rawH      = rawH;
+  r.breakH    = breakH;
+  r.netH      = netH;
+  r.overtimeH = overH;
+  r.nightH    = nightH;
+
+  const transport = calcTransport(log, staff);
+  r.transport = transport;
+
+  const isMonthly = staff.payType === 'monthly' && staff.monthlySalary;
+
+  if (hasValue(log.adjustedWage)) {
+    // Manual override trumps everything
+    r.basicPay    = parseFloat(log.adjustedWage);
+    r.overtimePay = 0;
+    r.nightPay    = 0;
+    r.baseRate    = isMonthly ? null : (staff.hourlyRate || 0);
+    r.dayRate     = null;
+    r.appliedRate = null;
+  } else if (isMonthly) {
+    // Monthly salary: daily portion = monthlySalary / weekdays in that month
+    const d = new Date(log.clockIn);
+    const wdays = countWeekdays(d.getFullYear(), d.getMonth() + 1);
+    r.basicPay    = Math.floor((staff.monthlySalary || 0) / wdays);
+    r.overtimePay = 0;
+    r.nightPay    = 0;
+    r.baseRate    = staff.monthlySalary;  // show monthly salary as "基本"
+    r.dayRate     = null;
+    r.appliedRate = null;
+  } else {
+    const baseRate    = staff.hourlyRate || 0;
+    const dayRate     = hasValue(log.adjustedHourlyRate) ? parseFloat(log.adjustedHourlyRate) : null;
+    const appliedRate = dayRate !== null ? dayRate : baseRate;
+    r.baseRate    = baseRate;
+    r.dayRate     = dayRate;
+    r.appliedRate = appliedRate;
+    r.basicPay    = Math.floor(appliedRate * netH);
+    r.overtimePay = Math.floor(appliedRate * 1.25 * overH);
+    r.nightPay    = Math.floor(appliedRate * 0.25 * nightH);
+  }
+  r.dayTotal = r.basicPay + r.overtimePay + r.nightPay + transport;
+  return r;
+}
+
+/** Count Mon–Fri weekdays in a given month (year: full year, month: 1-based) */
+function countWeekdays(year, month) {
+  const days = new Date(year, month, 0).getDate();
+  let count = 0;
+  for (let d = 1; d <= days; d++) {
+    const dow = new Date(year, month - 1, d).getDay();
+    if (dow >= 1 && dow <= 5) count++;
+  }
+  return count;
+}
+
+/** Check if a nullable/empty field has a meaningful value */
+function hasValue(v) {
+  return v !== null && v !== undefined && v !== '';
+}
+
+/** Format hours as "X時間Y分" */
+function fmtHours(h) {
+  const totalMin = Math.round(h * 60);
+  const hh = Math.floor(totalMin / 60);
+  const mm = totalMin % 60;
+  return mm === 0 ? `${hh}時間` : `${hh}時間${mm}分`;
+}
+
+/** Format yen */
+function fmtYen(n) {
+  return `¥${Math.round(n).toLocaleString('ja-JP')}`;
+}
+
+/** Format ISO string as "HH:MM" */
+function fmtTime(isoStr) {
+  if (!isoStr) return '—';
+  const d = new Date(isoStr);
+  return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+}
+
+/** Format ISO string as "M/D" */
+function fmtDate(isoStr) {
+  const d = new Date(isoStr);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+/** "YYYY-MM-DD" from any date */
+function toYMD(date) {
+  const d = (date instanceof Date) ? date : new Date(date);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+/** "YYYY-MM" from any date */
+function toYM(date) {
+  const d = (date instanceof Date) ? date : new Date(date);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+}
+
+/** Convert ISO string to datetime-local input value */
+function toDatetimeLocal(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+/* ============================================================
+   Application init
+============================================================ */
+async function initApp() {
+  // Set default month filters before any render
+  const ym = toYM(new Date());
+  document.getElementById('att-month-filter').value   = ym;
+  document.getElementById('payslip-month-sel').value  = ym;
+  document.getElementById('analysis-month-sel').value = ym;
+  const nextM = new Date();
+  nextM.setMonth(nextM.getMonth() + 1);
+  document.getElementById('shift-month-sel').value = toYM(nextM);
+
+  startClock();
+  updateAdminUI();
+
+  // Fetch all data from GAS before rendering
+  showLoading('データを読み込んでいます...');
+  try {
+    await fetchAllFromGas();
+  } catch (err) {
+    hideLoading();
+    showGasError('初回データ取得に失敗しました: ' + err.message);
+    // Render with empty cache so app is still usable
+  }
+  hideLoading();
+
+  renderClockTab();
+  renderStaffTab();
+  renderAttendance();
+  refreshPayslipStaffSelect();
+  renderShiftTab();
+  renderAnalysisTab();
+}
+
+/* ============================================================
+   Live clock
+============================================================ */
+function startClock() {
+  const DAYS = ['日','月','火','水','木','金','土'];
+  function tick() {
+    const n = new Date();
+    document.getElementById('clock-time').textContent =
+      `${pad2(n.getHours())}:${pad2(n.getMinutes())}:${pad2(n.getSeconds())}`;
+    document.getElementById('clock-date').textContent =
+      `${n.getFullYear()}年${n.getMonth()+1}月${n.getDate()}日（${DAYS[n.getDay()]}）`;
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+/* ============================================================
+   Admin auth
+============================================================ */
+function updateAdminUI() {
+  const area = document.getElementById('header-admin-area');
+  const admin = isAdmin();
+
+  if (admin) {
+    area.innerHTML = `
+      <div class="admin-badge">
+        <span>👑 管理者</span>
+        <button class="btn btn-secondary btn-sm" onclick="doLogout()">ログアウト</button>
+      </div>`;
+  } else {
+    area.innerHTML = `
+      <button class="btn btn-secondary btn-sm" onclick="openModal('modal-login')">
+        管理者ログイン
+      </button>`;
+  }
+
+  // Show/hide admin-only elements
+  document.querySelectorAll('.admin-only').forEach(el => {
+    if (admin) el.classList.remove('hidden');
+    else       el.classList.add('hidden');
+  });
+
+  // If admin just logged out, switch to clock tab
+  if (!admin) switchTab('clock');
+}
+
+function doLogin() {
+  const pw = document.getElementById('login-pw').value;
+  if (pw === ADMIN_PW) {
+    setAdmin(true);
+    closeModal('modal-login');
+    updateAdminUI();
+    renderClockTab();   // refresh today's logs card
+    renderAttendance();
+  } else {
+    showAlert('alert-login', 'パスワードが違います', 'error', 0);
+  }
+}
+
+function doLogout() {
+  setAdmin(false);
+  updateAdminUI();
+  renderClockTab();
+}
+
+/* ============================================================
+   Tab navigation
+============================================================ */
+document.getElementById('nav-tabs').addEventListener('click', e => {
+  const tab = e.target.closest('.nav-tab');
+  if (!tab) return;
+  switchTab(tab.dataset.tab);
+});
+
+function switchTab(name) {
+  document.querySelectorAll('.nav-tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.section').forEach(s =>
+    s.classList.toggle('active', s.id === `tab-${name}`));
+}
+
+/* ============================================================
+   Modal helpers
+============================================================ */
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  // Clear alerts inside modal
+  const modal = document.getElementById(id);
+  modal.querySelectorAll('[id^="alert-"]').forEach(el => { el.innerHTML = ''; });
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeModal(overlay.id);
+  });
+});
+
+/* ============================================================
+   Alert helper
+============================================================ */
+function showAlert(containerId, msg, type = 'success', duration = 3500) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  if (duration > 0) setTimeout(() => { el.innerHTML = ''; }, duration);
+}
+
+/* ============================================================
+   CLOCK TAB
+============================================================ */
+let selectedStaffId = null;
+
+function renderClockTab() {
+  const staffList = loadStaff();
+  const logs      = loadLogs();
+  const todayYMD  = toYMD(new Date());
+
+  // Build staff selector buttons — only show active (在籍中) staff
+  const activeStaff = staffList.filter(s => (s.status || '在籍中') === '在籍中');
+  const grid = document.getElementById('clock-staff-grid');
+  if (activeStaff.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><div class="icon">👤</div><p>在籍中のスタッフがいません</p></div>';
+    document.getElementById('clock-action-area').classList.add('hidden');
+    return;
+  }
+
+  grid.innerHTML = activeStaff.map(s => {
+    const todayLog = getTodayLog(logs, s.id, todayYMD);
+    const { label, cls } = getStatusInfo(todayLog);
+    return `
+      <div class="staff-select-btn ${selectedStaffId === s.id ? 'selected' : ''}"
+           onclick="selectStaff('${s.id}')">
+        <div>${s.name}</div>
+        <div class="s-status"><span class="badge ${cls}">${label}</span></div>
+      </div>`;
+  }).join('');
+
+  // Refresh action area for selected staff (must be active)
+  if (selectedStaffId) {
+    const s = activeStaff.find(x => x.id === selectedStaffId);
+    if (s) refreshClockAction(s, logs, todayYMD);
+    else   { selectedStaffId = null; hideClockAction(); }
+  }
+
+  // Today's log for admin
+  if (isAdmin()) {
+    renderTodayLogTable(staffList, logs, todayYMD);
+  }
+}
+
+/** Get today's log for a staff (null if none) */
+function getTodayLog(logs, staffId, todayYMD) {
+  return logs.find(l => l.staffId === staffId && toYMD(l.clockIn) === todayYMD) || null;
+}
+
+/** Returns { label, cls } for status badge */
+function getStatusInfo(todayLog) {
+  if (!todayLog)              return { label: '未出勤', cls: 'badge-off' };
+  if (!todayLog.clockOut)     return { label: '勤務中', cls: 'badge-working' };
+  return                             { label: '退勤済', cls: 'badge-done' };
+}
+
+function selectStaff(id) {
+  selectedStaffId = id;
+  renderClockTab();
+}
+
+function refreshClockAction(staff, logs, todayYMD) {
+  const todayLog = getTodayLog(logs, staff.id, todayYMD);
+  const { label, cls } = getStatusInfo(todayLog);
+  const isWorking = todayLog && !todayLog.clockOut;
+  const isDone    = todayLog && todayLog.clockOut;
+
+  document.getElementById('action-staff-name').textContent = staff.name;
+  const badge = document.getElementById('action-status-badge');
+  badge.textContent = label;
+  badge.className   = `badge ${cls}`;
+
+  document.getElementById('btn-clock-in').disabled  = isWorking || isDone;
+  document.getElementById('btn-clock-out').disabled = !isWorking;
+  document.getElementById('clock-action-area').classList.remove('hidden');
+}
+
+function hideClockAction() {
+  document.getElementById('clock-action-area').classList.add('hidden');
+}
+
+/** Handle clock-in / clock-out button click */
+function doClock(type) {
+  if (!selectedStaffId) return;
+
+  const logs     = loadLogs();
+  const now      = new Date();
+  const todayYMD = toYMD(now);
+  const todayLog = getTodayLog(logs, selectedStaffId, todayYMD);
+
+  if (type === 'in') {
+    if (todayLog && !todayLog.clockOut) {
+      showAlert('alert-clock', 'すでに出勤中です', 'error'); return;
+    }
+    if (todayLog && todayLog.clockOut) {
+      showAlert('alert-clock', '本日はすでに退勤済みです', 'error'); return;
+    }
+    const newLog = {
+      id:                 uid(),
+      staffId:            selectedStaffId,
+      clockIn:            now.toISOString(),
+      clockOut:           null,
+      adjustedHourlyRate: null,
+      adjustedWage:       null,
+      adjustedTransport:  null,
+      isModified:         false,
+    };
+    logs.push(newLog);
+    saveLogs(logs);
+    showAlert('alert-clock', '✅ 出勤しました！');
+    gasSyncLog(newLog);
+
+  } else {
+    if (!todayLog) {
+      showAlert('alert-clock', '出勤打刻がありません', 'error'); return;
+    }
+    if (todayLog.clockOut) {
+      showAlert('alert-clock', 'すでに退勤済みです', 'error'); return;
+    }
+    todayLog.clockOut = now.toISOString();
+    saveLogs(logs);
+    showAlert('alert-clock', '🌸 お疲れ様でした！退勤しました');
+    gasSyncLog(todayLog);
+  }
+
+  renderClockTab();
+  // If attendance tab rendered, refresh it
+  refreshAttendanceIfVisible();
+}
+
+/** Render today's punch table (admin only) */
+function renderTodayLogTable(staffList, logs, todayYMD) {
+  const card     = document.getElementById('today-log-card');
+  const tableDiv = document.getElementById('today-log-table');
+  const todayLogs = logs.filter(l => toYMD(l.clockIn) === todayYMD)
+                        .sort((a, b) => new Date(a.clockIn) - new Date(b.clockIn));
+
+  if (todayLogs.length === 0) {
+    tableDiv.innerHTML = '<div class="empty-state"><p>本日の打刻はまだありません</p></div>';
+    return;
+  }
+
+  const rows = todayLogs.map(l => {
+    const s = staffList.find(x => x.id === l.staffId);
+    const name = s ? s.name : '（不明）';
+    const hours = l.clockOut ? calcWorkHours(l.clockIn, l.clockOut) : null;
+    const isWorking = !l.clockOut;
+    return `
+      <tr class="${isWorking ? 'row-working' : ''}">
+        <td>${name}</td>
+        <td>${fmtTime(l.clockIn)}</td>
+        <td>${l.clockOut ? fmtTime(l.clockOut) : '<span class="badge badge-working">勤務中</span>'}</td>
+        <td>${hours !== null ? fmtHours(hours) : '—'}</td>
+      </tr>`;
+  }).join('');
+
+  tableDiv.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>スタッフ</th><th>出勤</th><th>退勤</th><th>勤務時間</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+/* ============================================================
+   STAFF TAB
+============================================================ */
+function renderStaffTab() {
+  const staffList = loadStaff();
+  const grid = document.getElementById('staff-grid');
+
+  if (staffList.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><div class="icon">👤</div><p>スタッフが登録されていません</p></div>';
+    return;
+  }
+
+  grid.innerHTML = staffList.map(s => {
+    const empLabel  = s.employment || '常勤';
+    const empCls    = empLabel === '常勤' ? 'badge-fulltime' : 'badge-parttime';
+    const empText   = empLabel === '非常勤' && s.weekDays
+      ? `非常勤（週${s.weekDays}日）` : empLabel;
+    const statusCls = (s.status || '在籍中') === '在籍中' ? '' : 'badge-inactive';
+    const statusLabel = s.status || '在籍中';
+    return `
+    <div class="staff-card" style="${(s.status || '在籍中') === '非稼働' ? 'opacity:0.6;' : ''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div class="staff-card-name" style="margin:0;">${escHtml(s.name)}</div>
+        <span class="badge ${statusCls || 'badge-working'}" style="font-size:0.65rem;">${statusLabel}</span>
+      </div>
+      <div style="margin-bottom:6px;">
+        <span class="badge ${empCls}" style="font-size:0.68rem;">${empText}</span>
+      </div>
+      <div class="staff-card-info">
+        ${s.payType === 'monthly'
+          ? `月給：${fmtYen(s.monthlySalary || 0)}`
+          : `時給：${fmtYen(s.hourlyRate || 0)}`}<br>
+        交通費：${fmtYen(s.dailyTransport || 0)} / 日<br>
+        定期代：${fmtYen(s.monthlyCommute || 0)} / 月
+      </div>
+      <div class="staff-card-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openStaffModal('${s.id}')">編集</button>
+        <button class="btn btn-danger btn-sm"    onclick="deleteStaff('${s.id}')">削除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openStaffModal(id) {
+  document.getElementById('alert-staff-modal').innerHTML = '';
+
+  if (id) {
+    const s = loadStaff().find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('modal-staff-title').textContent     = '👤 スタッフ編集';
+    document.getElementById('staff-edit-id').value               = s.id;
+    document.getElementById('staff-name-input').value            = s.name;
+    document.getElementById('staff-status-input').value          = s.status || '在籍中';
+    document.getElementById('staff-employment-input').value      = s.employment || '常勤';
+    document.getElementById('staff-weekdays-input').value        = s.weekDays || '';
+    document.getElementById('staff-paytype-input').value         = s.payType || 'hourly';
+    document.getElementById('staff-hourly-input').value          = s.hourlyRate || '';
+    document.getElementById('staff-monthly-input').value         = s.monthlySalary || '';
+    document.getElementById('staff-transport-input').value       = s.dailyTransport || '';
+    document.getElementById('staff-commute-input').value         = s.monthlyCommute || '';
+    document.getElementById('staff-route-input').value           = s.route || '';
+    document.getElementById('staff-address-input').value         = s.address || '';
+    document.getElementById('staff-email-input').value           = s.email || '';
+    document.getElementById('staff-phone-input').value           = s.phone || '';
+    document.getElementById('staff-memo-input').value            = s.memo || '';
+    document.getElementById('staff-birthdate-input').value       = s.birthdate || '';
+    document.getElementById('staff-dependents-input').value      = s.dependents ?? 0;
+    document.getElementById('staff-std-salary-input').value      = s.stdSalary || '';
+    document.getElementById('staff-social-ins-input').checked    = !!s.socialIns;
+    document.getElementById('staff-employ-ins-input').checked    = !!s.employIns;
+  } else {
+    document.getElementById('modal-staff-title').textContent     = '👤 スタッフ追加';
+    document.getElementById('staff-edit-id').value               = '';
+    document.getElementById('staff-name-input').value            = '';
+    document.getElementById('staff-status-input').value          = '在籍中';
+    document.getElementById('staff-employment-input').value      = '常勤';
+    document.getElementById('staff-weekdays-input').value        = '';
+    document.getElementById('staff-paytype-input').value         = 'hourly';
+    document.getElementById('staff-hourly-input').value          = '';
+    document.getElementById('staff-monthly-input').value         = '';
+    document.getElementById('staff-transport-input').value       = '';
+    document.getElementById('staff-commute-input').value         = '';
+    document.getElementById('staff-route-input').value           = '';
+    document.getElementById('staff-address-input').value         = '';
+    document.getElementById('staff-email-input').value           = '';
+    document.getElementById('staff-phone-input').value           = '';
+    document.getElementById('staff-memo-input').value            = '';
+    document.getElementById('staff-birthdate-input').value       = '';
+    document.getElementById('staff-dependents-input').value      = 0;
+    document.getElementById('staff-std-salary-input').value      = '';
+    document.getElementById('staff-social-ins-input').checked    = false;
+    document.getElementById('staff-employ-ins-input').checked    = false;
+  }
+  onEmploymentChange(); // sync visibility of weekdays / paytype fields
+  openModal('modal-staff');
+  setTimeout(() => document.getElementById('staff-name-input').focus(), 80);
+}
+
+/** Show/hide weekdays and paytype fields based on employment type */
+function onEmploymentChange() {
+  const emp = document.getElementById('staff-employment-input').value;
+  const wdGrp = document.getElementById('staff-weekdays-group');
+  const ptGrp = document.getElementById('staff-paytype-group');
+  if (emp === '非常勤') {
+    wdGrp.classList.remove('hidden');
+    ptGrp.classList.add('hidden');
+    // Reset paytype to hourly and show hourly field for 非常勤
+    document.getElementById('staff-paytype-input').value = 'hourly';
+    document.getElementById('staff-hourly-group').classList.remove('hidden');
+    document.getElementById('staff-monthly-group').classList.add('hidden');
+  } else {
+    wdGrp.classList.add('hidden');
+    document.getElementById('staff-weekdays-input').value = '';
+    ptGrp.classList.remove('hidden');
+    onPayTypeChange();
+  }
+}
+
+/** Show/hide hourly/monthly salary inputs based on payType */
+function onPayTypeChange() {
+  const pt = document.getElementById('staff-paytype-input').value;
+  if (pt === 'monthly') {
+    document.getElementById('staff-hourly-group').classList.add('hidden');
+    document.getElementById('staff-monthly-group').classList.remove('hidden');
+  } else {
+    document.getElementById('staff-hourly-group').classList.remove('hidden');
+    document.getElementById('staff-monthly-group').classList.add('hidden');
+  }
+}
+
+function saveStaffFromModal() {
+  const name         = document.getElementById('staff-name-input').value.trim();
+  const status       = document.getElementById('staff-status-input').value;
+  const employment   = document.getElementById('staff-employment-input').value;
+  const weekDaysRaw  = document.getElementById('staff-weekdays-input').value;
+  const payType      = employment === '常勤'
+    ? document.getElementById('staff-paytype-input').value
+    : 'hourly';
+  const hourlyRaw    = document.getElementById('staff-hourly-input').value;
+  const monthlyRaw   = document.getElementById('staff-monthly-input').value;
+  const transRaw     = document.getElementById('staff-transport-input').value;
+  const commuteRaw  = document.getElementById('staff-commute-input').value;
+  const route       = document.getElementById('staff-route-input').value.trim();
+  const address     = document.getElementById('staff-address-input').value.trim();
+  const email       = document.getElementById('staff-email-input').value.trim();
+  const phone       = document.getElementById('staff-phone-input').value.trim();
+  const memo        = document.getElementById('staff-memo-input').value.trim();
+  const birthdate   = document.getElementById('staff-birthdate-input').value;
+  const dependents  = parseInt(document.getElementById('staff-dependents-input').value || '0', 10) || 0;
+  const stdSalaryRaw = document.getElementById('staff-std-salary-input').value;
+  const socialIns   = document.getElementById('staff-social-ins-input').checked;
+  const employIns   = document.getElementById('staff-employ-ins-input').checked;
+
+  // --- Validation ---
+  if (!name) {
+    showAlert('alert-staff-modal', '名前を入力してください', 'error', 0); return;
+  }
+  if (!employment) {
+    showAlert('alert-staff-modal', '雇用区分を選択してください', 'error', 0); return;
+  }
+  // 週勤務日数は非常勤のみ必須
+  let weekDays = null;
+  if (employment === '非常勤') {
+    const wd = parseInt(weekDaysRaw, 10);
+    if (isNaN(wd) || wd < 1 || wd > 4) {
+      showAlert('alert-staff-modal', '週勤務日数は1〜4の数値を入力してください（非常勤必須）', 'error', 0); return;
+    }
+    weekDays = wd;
+  }
+  let hourlyRate = 0;
+  let monthlySalary = null;
+  if (payType === 'monthly') {
+    monthlySalary = parseInt(monthlyRaw, 10);
+    if (isNaN(monthlySalary) || monthlySalary < 0) {
+      showAlert('alert-staff-modal', '月給は0以上の整数を入力してください', 'error', 0); return;
+    }
+  } else {
+    hourlyRate = parseInt(hourlyRaw, 10);
+    if (isNaN(hourlyRate) || hourlyRate < 0) {
+      showAlert('alert-staff-modal', '時給は0以上の整数を入力してください', 'error', 0); return;
+    }
+  }
+  const dailyTransport = transRaw === '' ? 0 : parseInt(transRaw, 10);
+  if (isNaN(dailyTransport) || dailyTransport < 0) {
+    showAlert('alert-staff-modal', '交通費は0以上の整数を入力してください', 'error', 0); return;
+  }
+  const monthlyCommute = commuteRaw === '' ? 0 : parseInt(commuteRaw, 10);
+  if (isNaN(monthlyCommute) || monthlyCommute < 0) {
+    showAlert('alert-staff-modal', '定期代は0以上の整数を入力してください', 'error', 0); return;
+  }
+  let stdSalary = null;
+  if (stdSalaryRaw !== '') {
+    stdSalary = parseInt(stdSalaryRaw, 10);
+    if (isNaN(stdSalary) || stdSalary < 0) {
+      showAlert('alert-staff-modal', '標準報酬月額は0以上の整数を入力してください', 'error', 0); return;
+    }
+  }
+  // メール簡易チェック
+  if (email && !email.includes('@')) {
+    showAlert('alert-staff-modal', 'メールアドレスの形式が正しくありません（@が必要です）', 'error', 0); return;
+  }
+  // 電話：数値とハイフンのみ
+  if (phone && !/^[\d\-]+$/.test(phone)) {
+    showAlert('alert-staff-modal', '電話番号は数字とハイフンのみ入力してください', 'error', 0); return;
+  }
+
+  const staffList = loadStaff();
+  const editId    = document.getElementById('staff-edit-id').value;
+  const staffData = {
+    name, status, employment, weekDays,
+    payType, hourlyRate, monthlySalary, dailyTransport, monthlyCommute,
+    route, address, email, phone, memo,
+    birthdate, dependents, stdSalary, socialIns, employIns,
+  };
+
+  let savedStaff;
+  if (editId) {
+    const idx = staffList.findIndex(x => x.id === editId);
+    if (idx >= 0) {
+      staffList[idx] = { ...staffList[idx], ...staffData };
+      savedStaff = staffList[idx];
+    }
+  } else {
+    savedStaff = { id: uid(), ...staffData };
+    staffList.push(savedStaff);
+  }
+
+  saveStaff(staffList);
+  closeModal('modal-staff');
+  renderStaffTab();
+  renderClockTab();
+  refreshPayslipStaffSelect();
+  showAlert('alert-staff', editId ? 'スタッフ情報を更新しました' : 'スタッフを追加しました');
+  if (savedStaff) gasSyncStaff(savedStaff);
+}
+
+function deleteStaff(id) {
+  const s = loadStaff().find(x => x.id === id);
+  if (!s) return;
+  if (!confirm(`「${s.name}」を削除しますか？\n※関連する勤怠データは残ります`)) return;
+
+  saveStaff(loadStaff().filter(x => x.id !== id));
+  renderStaffTab();
+  renderClockTab();
+  refreshPayslipStaffSelect();
+  showAlert('alert-staff', 'スタッフを削除しました');
+  gasRequest('deleteStaff', { id }).catch(err => showGasError('スタッフ削除エラー: ' + err.message));
+}
+
+/* ============================================================
+   ATTENDANCE TAB
+============================================================ */
+function renderAttendance() {
+  const staffFilter = document.getElementById('att-staff-filter').value;
+  const monthFilter = document.getElementById('att-month-filter').value;
+  const staffList   = loadStaff();
+  const logs        = loadLogs();
+
+  // Rebuild staff filter options (keeping current selection)
+  const staffSel = document.getElementById('att-staff-filter');
+  const prevVal  = staffFilter;
+  staffSel.innerHTML = '<option value="">全スタッフ</option>' +
+    staffList.map(s =>
+      `<option value="${s.id}" ${s.id === prevVal ? 'selected' : ''}>${escHtml(s.name)}</option>`
+    ).join('');
+
+  // Filter logs
+  let filtered = logs.slice();
+  if (staffFilter) filtered = filtered.filter(l => l.staffId === staffFilter);
+  if (monthFilter) filtered = filtered.filter(l => toYM(l.clockIn) === monthFilter);
+
+  // Sort: newest first
+  filtered.sort((a, b) => new Date(b.clockIn) - new Date(a.clockIn));
+
+  const tableDiv = document.getElementById('attendance-table');
+
+  if (filtered.length === 0) {
+    tableDiv.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>該当データがありません</p></div>';
+    document.getElementById('monthly-summary').classList.add('hidden');
+    return;
+  }
+
+  const rows = filtered.map(l => {
+    const s     = staffList.find(x => x.id === l.staffId);
+    const sName = s ? escHtml(s.name) : '（不明）';
+    const pd    = s ? calcPayDetails(l, s) : {};
+    const working = !l.clockOut;
+
+    const modBadge = l.isModified
+      ? '<span class="badge badge-modified" style="font-size:0.65rem;">修正済</span>' : '';
+
+    const h = (v, fn) => v !== null && v !== undefined ? fn(v) : '—';
+    const hY = v => h(v, fmtYen);
+    const hH = v => h(v, fmtHours);
+    const hT = v => h(v, fmtTime);
+    const hR = v => v !== null && v !== undefined ? `¥${Math.round(v).toLocaleString('ja-JP')}` : '—';
+
+    return `
+      <tr>
+        <td>${fmtDate(l.clockIn)} ${modBadge}</td>
+        <td>${sName}</td>
+        <td>${fmtTime(l.clockIn)}</td>
+        <td>${working ? '<span class="badge badge-working">勤務中</span>' : fmtTime(l.clockOut)}</td>
+        <td>${working ? '—' : hT(pd.roundedIn)}</td>
+        <td>${working ? '—' : hT(pd.roundedOut)}</td>
+        <td>${working ? '—' : hH(pd.rawH)}</td>
+        <td>${working ? '—' : hH(pd.breakH)}</td>
+        <td>${working ? '—' : hH(pd.netH)}</td>
+        <td>${working ? '—' : hH(pd.overtimeH)}</td>
+        <td>${working ? '—' : hH(pd.nightH)}</td>
+        <td class="num">${working || !s ? '—' : hR(pd.baseRate)}</td>
+        <td class="num">${working || !s ? '—' : (pd.dayRate !== null ? hR(pd.dayRate) : '—')}</td>
+        <td class="num">${working || !s ? '—' : hR(pd.appliedRate)}</td>
+        <td class="num">${working ? '—' : hY(pd.basicPay)}</td>
+        <td class="num">${working ? '—' : hY(pd.overtimePay)}</td>
+        <td class="num">${working ? '—' : hY(pd.nightPay)}</td>
+        <td class="num">${working ? '—' : hY(pd.transport)}</td>
+        <td class="num">${working ? '—' : hY(pd.dayTotal)}</td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick="openEditModal('${l.id}')">修正</button>
+        </td>
+      </tr>`;
+  }).join('');
+
+  tableDiv.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>日付</th><th>スタッフ</th>
+            <th>打刻出勤</th><th>打刻退勤</th>
+            <th>開始(丸め)</th><th>終了(丸め)</th>
+            <th>総勤務</th><th>休憩</th><th>実働</th><th>残業</th><th>深夜</th>
+            <th class="num">基本時給</th><th class="num">当日時給</th><th class="num">適用時給</th>
+            <th class="num">基本給</th><th class="num">残業手当</th><th class="num">深夜手当</th>
+            <th class="num">交通費</th><th class="num">日額合計</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+
+  // Monthly summary (only when both staff and month are selected)
+  if (staffFilter && monthFilter) {
+    renderMonthlySummary(filtered, staffList, staffFilter);
+  } else {
+    document.getElementById('monthly-summary').classList.add('hidden');
+  }
+}
+
+function exportAttendanceCSV() {
+  const staffFilter = document.getElementById('att-staff-filter').value;
+  const monthFilter = document.getElementById('att-month-filter').value;
+  const staffList   = loadStaff();
+  let logs = loadLogs().slice();
+  if (staffFilter) logs = logs.filter(l => l.staffId === staffFilter);
+  if (monthFilter) logs = logs.filter(l => toYM(l.clockIn) === monthFilter);
+  logs.sort((a, b) => new Date(a.clockIn) - new Date(b.clockIn));
+
+  if (logs.length === 0) {
+    showAlert('alert-attendance', 'エクスポートするデータがありません', 'error'); return;
+  }
+
+  const fmtDateFull = isoStr => {
+    const d = new Date(isoStr);
+    return `${d.getFullYear()}/${pad2(d.getMonth()+1)}/${pad2(d.getDate())}`;
+  };
+  const fmtH = v => (v !== null && v !== undefined) ? (Math.round(v * 100) / 100).toFixed(2) : '';
+  const fmtN = v => (v !== null && v !== undefined) ? String(Math.round(v)) : '';
+
+  const escCsv = s => {
+    s = String(s);
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  };
+
+  const header = [
+    '勤務日', '氏名', '出勤時刻', '退勤時刻', '勤務開始時刻', '勤務終了時刻',
+    '総勤務時間', '休憩時間', '実働時間', '残業時間', '深夜労働時間',
+    '基本時給', '当日時給', '適用時給', '基本給', '交通費', '残業手当', '深夜手当', '日額合計',
+  ];
+
+  const rows = logs.map(l => {
+    const s       = staffList.find(x => x.id === l.staffId);
+    const sName   = s ? s.name : '不明';
+    const pd      = s ? calcPayDetails(l, s) : {};
+    const working = !l.clockOut;
+    return [
+      fmtDateFull(l.clockIn),
+      sName,
+      fmtTime(l.clockIn),
+      working ? '勤務中' : fmtTime(l.clockOut),
+      !working && pd.roundedIn  ? fmtTime(pd.roundedIn.toISOString())  : '',
+      !working && pd.roundedOut ? fmtTime(pd.roundedOut.toISOString()) : '',
+      fmtH(pd.rawH),
+      fmtH(pd.breakH),
+      fmtH(pd.netH),
+      fmtH(pd.overtimeH),
+      fmtH(pd.nightH),
+      fmtN(pd.baseRate),
+      (pd.dayRate !== null && pd.dayRate !== undefined) ? fmtN(pd.dayRate) : '',
+      fmtN(pd.appliedRate),
+      fmtN(pd.basicPay),
+      fmtN(pd.transport),
+      fmtN(pd.overtimePay),
+      fmtN(pd.nightPay),
+      fmtN(pd.dayTotal),
+    ].map(escCsv).join(',');
+  });
+
+  const bom = '\uFEFF';
+  const csv = bom + [header.map(escCsv).join(','), ...rows].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  let filename;
+  if (monthFilter) {
+    const [yr, mo] = monthFilter.split('-');
+    filename = `勤怠_${yr}年${mo}月.csv`;
+  } else {
+    filename = `勤怠_全期間_${toYMD(new Date())}.csv`;
+  }
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* CSV helper: parse one CSV line respecting quoted fields */
+function parseCsvLine(line) {
+  const result = [];
+  let inQuote = false, field = '';
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuote && line[i + 1] === '"') { field += '"'; i++; }
+      else inQuote = !inQuote;
+    } else if (ch === ',' && !inQuote) {
+      result.push(field); field = '';
+    } else {
+      field += ch;
+    }
+  }
+  result.push(field);
+  return result;
+}
+
+async function importAttendanceCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = ''; // allow re-selecting the same file
+
+  let text;
+  try { text = await file.text(); }
+  catch (e) { showAlert('alert-attendance', 'ファイルの読み込みに失敗しました: ' + e.message, 'error'); return; }
+
+  // Strip BOM
+  const content = text.startsWith('\uFEFF') ? text.slice(1) : text;
+  const lines   = content.split(/\r?\n/).filter(l => l.trim() !== '');
+
+  if (lines.length < 2) {
+    showAlert('alert-attendance', 'CSVファイルにデータがありません', 'error'); return;
+  }
+
+  // Parse header → column index map
+  const headers = parseCsvLine(lines[0]);
+  const col = name => headers.indexOf(name);
+
+  const REQUIRED = ['勤務日', '氏名', '出勤時刻', '退勤時刻'];
+  for (const c of REQUIRED) {
+    if (col(c) < 0) {
+      showAlert('alert-attendance',
+        `CSVフォーマットエラー：「${c}」列が見つかりません。\nエクスポートしたCSVをそのまま使用してください。`,
+        'error'); return;
+    }
+  }
+
+  const staffList = loadStaff();
+  const parseErrors = [];
+  const candidates  = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const fields = parseCsvLine(lines[i]);
+    const get    = name => { const idx = col(name); return idx >= 0 ? (fields[idx] || '').trim() : ''; };
+
+    const datStr  = get('勤務日');
+    const nameStr = get('氏名');
+    const inStr   = get('出勤時刻');
+    const outStr  = get('退勤時刻');
+
+    if (!datStr || !nameStr || !inStr) {
+      parseErrors.push(`行${i + 1}: 必須項目（勤務日・氏名・出勤時刻）が不足`); continue;
+    }
+
+    // Date: "YYYY/MM/DD"
+    const dp = datStr.split('/').map(Number);
+    if (dp.length < 3 || dp.some(isNaN)) {
+      parseErrors.push(`行${i + 1}: 勤務日のフォーマット不正 (${datStr})。YYYY/MM/DD 形式が必要`); continue;
+    }
+    const [yr, mo, da] = dp;
+
+    // clockIn time: "HH:MM"
+    const tp = inStr.split(':').map(Number);
+    if (tp.length < 2 || tp.some(isNaN)) {
+      parseErrors.push(`行${i + 1}: 出勤時刻のフォーマット不正 (${inStr})`); continue;
+    }
+    const [inH, inM] = tp;
+
+    const staff = staffList.find(s => s.name === nameStr);
+    if (!staff) {
+      parseErrors.push(`行${i + 1}: スタッフ「${nameStr}」が見つかりません`); continue;
+    }
+
+    const clockIn = new Date(yr, mo - 1, da, inH, inM, 0).toISOString();
+
+    let clockOut = null;
+    if (outStr && outStr !== '勤務中') {
+      const op = outStr.split(':').map(Number);
+      if (op.length >= 2 && !op.some(isNaN)) {
+        const [outH, outM] = op;
+        const outDate = new Date(yr, mo - 1, da, outH, outM, 0);
+        // Cross-midnight: if clockOut ≤ clockIn, add one day
+        if (outDate.getTime() <= new Date(yr, mo - 1, da, inH, inM, 0).getTime()) {
+          outDate.setDate(outDate.getDate() + 1);
+        }
+        clockOut = outDate.toISOString();
+      }
+    }
+
+    // adjustedHourlyRate: set when 当日時給 differs from 基本時給
+    let adjustedHourlyRate = null;
+    const dayRateStr  = get('当日時給');
+    const baseRateStr = get('基本時給');
+    if (dayRateStr !== '' && dayRateStr !== baseRateStr) {
+      const dr = parseInt(dayRateStr, 10);
+      if (!isNaN(dr)) adjustedHourlyRate = dr;
+    }
+
+    candidates.push({
+      staffId:           staff.id,
+      clockIn, clockOut,
+      adjustedHourlyRate,
+      dateKey: `${staff.id}_${yr}-${pad2(mo)}-${pad2(da)}`,
+    });
+  }
+
+  if (candidates.length === 0) {
+    const errSample = parseErrors.slice(0, 5).join('\n');
+    showAlert('alert-attendance',
+      `インポート可能なデータがありません。\n${errSample}`, 'error'); return;
+  }
+
+  // Detect duplicates
+  const existingLogs = loadLogs();
+  const existingKeys = new Set(
+    existingLogs.map(l => `${l.staffId}_${toYMD(new Date(l.clockIn))}`)
+  );
+  const dupCount = candidates.filter(c => existingKeys.has(c.dateKey)).length;
+
+  // Confirmation dialog
+  const dupNote = dupCount > 0 ? `\nうち ${dupCount} 件が既存データと重複しています。` : '\n重複なし。';
+  if (!confirm(`${candidates.length} 件の勤怠データをインポートします。${dupNote}\n\n続けますか？`)) return;
+
+  let overwrite = false;
+  if (dupCount > 0) {
+    overwrite = confirm(
+      `重複する ${dupCount} 件の扱いを選択してください。\n\n[OK]　　　　上書きする\n[キャンセル]　スキップする`
+    );
+  }
+
+  // Apply
+  const logs     = existingLogs.slice();
+  let imported = 0, skipped = 0;
+  const syncQueue = [];
+
+  for (const c of candidates) {
+    const idx = logs.findIndex(l =>
+      `${l.staffId}_${toYMD(new Date(l.clockIn))}` === c.dateKey
+    );
+    if (idx >= 0) {
+      if (overwrite) {
+        logs[idx] = {
+          ...logs[idx],
+          clockIn:            c.clockIn,
+          clockOut:           c.clockOut,
+          adjustedHourlyRate: c.adjustedHourlyRate,
+          adjustedWage:       null,       // CSV has no fixed-wage column → clear
+          adjustedTransport:  null,       // CSV has no transport-override column → clear
+          isModified:         c.adjustedHourlyRate !== null,
+        };
+        syncQueue.push(logs[idx]);
+        imported++;
+      } else {
+        skipped++;
+      }
+    } else {
+      const newLog = {
+        id:                 uid(),
+        staffId:            c.staffId,
+        clockIn:            c.clockIn,
+        clockOut:           c.clockOut,
+        adjustedHourlyRate: c.adjustedHourlyRate,
+        adjustedWage:       null,
+        adjustedTransport:  null,
+        isModified:         false,
+      };
+      logs.push(newLog);
+      syncQueue.push(newLog);
+      imported++;
+    }
+  }
+
+  saveLogs(logs);
+  renderAttendance();
+
+  // Sync imported records to GAS (fire-and-forget)
+  if (syncQueue.length > 0) {
+    showSyncToast('同期中...', 'syncing');
+    Promise.all(syncQueue.map(l => gasRequest('saveAttendance', logToGas(l))))
+      .then(() => showSyncToast('同期完了', 'ok', 2000))
+      .catch(err => showGasError('インポート同期エラー: ' + err.message));
+  }
+
+  let msg = `インポート完了：${imported} 件を取り込みました`;
+  if (skipped > 0) msg += `（${skipped} 件スキップ）`;
+  if (parseErrors.length > 0) {
+    msg += `\n\n処理できなかった行（${parseErrors.length} 件）:\n` + parseErrors.slice(0, 5).join('\n');
+    if (parseErrors.length > 5) msg += `\n…他 ${parseErrors.length - 5} 件`;
+  }
+  showAlert('alert-attendance', msg, imported > 0 ? 'success' : 'error', 0);
+}
+
+function renderMonthlySummary(logs, staffList, staffId) {
+  const s              = staffList.find(x => x.id === staffId);
+  const doneLogs       = logs.filter(l => l.clockOut);
+  const totalHours     = doneLogs.reduce((acc, l) => acc + calcWorkHours(l.clockIn, l.clockOut), 0);
+  const totalTrans     = doneLogs.reduce((acc, l) => acc + calcTransport(l, s), 0);
+  const monthlyCommute = s ? (s.monthlyCommute || 0) : 0;
+
+  let totalWage;
+  if (s && s.payType === 'monthly' && s.monthlySalary) {
+    // Determine weekdays in the month from the first done log
+    const refLog = doneLogs[0];
+    if (refLog) {
+      const d = new Date(refLog.clockIn);
+      const wdays = countWeekdays(d.getFullYear(), d.getMonth() + 1);
+      const actualDays = doneLogs.length;
+      totalWage = actualDays >= wdays
+        ? s.monthlySalary
+        : Math.round(s.monthlySalary / wdays * actualDays);
+    } else {
+      totalWage = 0;
+    }
+  } else {
+    totalWage = doneLogs.reduce((acc, l) => acc + calcWage(l, s), 0);
+  }
+  const totalAmount    = totalWage + totalTrans + monthlyCommute;
+
+  document.getElementById('monthly-summary').classList.remove('hidden');
+  document.getElementById('monthly-summary-grid').innerHTML = `
+    <div class="summary-item">
+      <div class="summary-label">総勤務時間</div>
+      <div class="summary-value">${fmtHours(totalHours)}</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">総給与</div>
+      <div class="summary-value">${fmtYen(totalWage)}</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">総交通費</div>
+      <div class="summary-value">${fmtYen(totalTrans)}</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">定期代</div>
+      <div class="summary-value">${fmtYen(monthlyCommute)}</div>
+    </div>
+    <div class="summary-item highlight" style="grid-column:1/-1;">
+      <div class="summary-label">総支給額（給与＋交通費＋定期代）</div>
+      <div class="summary-value">${fmtYen(totalAmount)}</div>
+    </div>`;
+}
+
+function refreshAttendanceIfVisible() {
+  const attTab = document.getElementById('tab-attendance');
+  if (attTab && attTab.classList.contains('active')) renderAttendance();
+}
+
+/* ============================================================
+   EDIT ATTENDANCE MODAL
+============================================================ */
+function openEditModal(logId) {
+  const log = loadLogs().find(l => l.id === logId);
+  if (!log) return;
+
+  document.getElementById('alert-edit').innerHTML  = '';
+  document.getElementById('edit-log-id').value     = logId;
+  document.getElementById('edit-clock-in').value   = toDatetimeLocal(log.clockIn);
+  document.getElementById('edit-clock-out').value  = toDatetimeLocal(log.clockOut);
+  document.getElementById('edit-hourly').value     = hasValue(log.adjustedHourlyRate) ? log.adjustedHourlyRate : '';
+  document.getElementById('edit-wage').value       = hasValue(log.adjustedWage)       ? log.adjustedWage       : '';
+  document.getElementById('edit-transport').value  = hasValue(log.adjustedTransport)  ? log.adjustedTransport  : '';
+
+  openModal('modal-edit');
+}
+
+function saveEditFromModal() {
+  const logId       = document.getElementById('edit-log-id').value;
+  const clockInVal  = document.getElementById('edit-clock-in').value;
+  const clockOutVal = document.getElementById('edit-clock-out').value;
+  const hourlyRaw   = document.getElementById('edit-hourly').value.trim();
+  const wageRaw     = document.getElementById('edit-wage').value.trim();
+  const transRaw    = document.getElementById('edit-transport').value.trim();
+
+  // Validation
+  if (!clockInVal) {
+    showAlert('alert-edit', '出勤時刻を入力してください', 'error', 0); return;
+  }
+  if (clockOutVal && new Date(clockOutVal) <= new Date(clockInVal)) {
+    showAlert('alert-edit', '退勤時刻は出勤時刻より後に設定してください', 'error', 0); return;
+  }
+  if (hourlyRaw !== '' && wageRaw !== '') {
+    showAlert('alert-edit', '修正時給と修正給与は同時に入力できません', 'error', 0); return;
+  }
+  if (hourlyRaw !== '' && (isNaN(+hourlyRaw) || +hourlyRaw < 0)) {
+    showAlert('alert-edit', '修正時給は0以上の数値を入力してください', 'error', 0); return;
+  }
+  if (wageRaw !== '' && (isNaN(+wageRaw) || +wageRaw < 0)) {
+    showAlert('alert-edit', '修正給与は0以上の数値を入力してください', 'error', 0); return;
+  }
+  if (transRaw !== '' && (isNaN(+transRaw) || +transRaw < 0)) {
+    showAlert('alert-edit', '交通費は0以上の数値を入力してください', 'error', 0); return;
+  }
+
+  const logs = loadLogs();
+  const idx  = logs.findIndex(l => l.id === logId);
+  if (idx < 0) return;
+
+  logs[idx] = {
+    ...logs[idx],
+    clockIn:            new Date(clockInVal).toISOString(),
+    clockOut:           clockOutVal ? new Date(clockOutVal).toISOString() : null,
+    adjustedHourlyRate: hourlyRaw !== '' ? parseFloat(hourlyRaw) : null,
+    adjustedWage:       wageRaw   !== '' ? parseFloat(wageRaw)   : null,
+    adjustedTransport:  transRaw  !== '' ? parseFloat(transRaw)  : null,
+    isModified:         true,
+  };
+
+  saveLogs(logs);
+  closeModal('modal-edit');
+  renderAttendance();
+  renderClockTab();
+  showAlert('alert-attendance', '勤怠データを修正しました');
+  gasSyncLog(logs[idx]);
+}
+
+/* ============================================================
+   PAYSLIP TAB
+============================================================ */
+function refreshPayslipStaffSelect() {
+  const staffList = loadStaff();
+  const sel = document.getElementById('payslip-staff-sel');
+  sel.innerHTML = staffList.map(s =>
+    `<option value="${s.id}">${escHtml(s.name)}</option>`
+  ).join('');
+}
+
+function generatePayslip() {
+  const staffId = document.getElementById('payslip-staff-sel').value;
+  const month   = document.getElementById('payslip-month-sel').value;
+  if (!staffId || !month) { alert('スタッフと対象年月を選択してください'); return; }
+
+  const s = loadStaff().find(x => x.id === staffId);
+  if (!s) { alert('スタッフが見つかりません'); return; }
+
+  const logs = loadLogs()
+    .filter(l => l.staffId === staffId && l.clockOut && toYM(l.clockIn) === month)
+    .sort((a, b) => new Date(a.clockIn) - new Date(b.clockIn));
+
+  const [yr, mo] = month.split('-').map(Number);
+
+  // ── Attendance ──
+  const workDays     = logs.length;
+  const totalHours   = logs.reduce((acc, l) => acc + calcWorkHours(l.clockIn, l.clockOut), 0);
+  const totalOvertimeH = logs.reduce((acc, l) => acc + ((calcPayDetails(l, s).overtimeH) || 0), 0);
+
+  // ── Earnings ──
+  const isMonthlyStaff = s.payType === 'monthly' && s.monthlySalary;
+  let basicPay, overtimePay, nightPay;
+  if (isMonthlyStaff) {
+    const wdays = countWeekdays(yr, mo);
+    basicPay    = workDays >= wdays ? s.monthlySalary : Math.round(s.monthlySalary / wdays * workDays);
+    overtimePay = 0; nightPay = 0;
+  } else {
+    const details = logs.map(l => calcPayDetails(l, s));
+    basicPay    = details.reduce((a, d) => a + (d.basicPay    || 0), 0);
+    overtimePay = details.reduce((a, d) => a + (d.overtimePay || 0), 0);
+    nightPay    = details.reduce((a, d) => a + (d.nightPay    || 0), 0);
+  }
+  const totalTrans     = logs.reduce((acc, l) => acc + calcTransport(l, s), 0);
+  const monthlyCommute = s.monthlyCommute || 0;
+  const commute        = totalTrans + monthlyCommute;
+
+  // ── Saved overrides ──
+  const psKey  = `${staffId}_${month}`;
+  const saved  = loadPayslips()[psKey] || {};
+  const allowance = saved.allowance ?? 0;
+
+  const baseGross = basicPay + overtimePay + nightPay + commute;
+  const gross     = baseGross + allowance;
+
+  // ── Deductions (auto then override) ──
+  const autoDed     = calcDeductions(s, gross);
+  const health      = saved.healthIns      ?? autoDed.health;
+  const care        = saved.careIns        ?? autoDed.care;
+  const pension     = saved.pension        ?? autoDed.pension;
+  const employ      = saved.employmentIns  ?? autoDed.employ;
+  const incomeTax   = saved.incomeTax      ?? autoDed.incomeTax;
+  const residentTax = saved.residentTax    ?? 0;
+
+  const totalDed   = health + care + pension + employ + incomeTax + residentTax;
+  const netPay     = gross - totalDed;
+  const cashPay    = saved.cashPay ?? 0;
+  const grandTotal = netPay + cashPay;
+  const note       = saved.note    ?? '';
+
+  const si = !!s.socialIns;
+  const ei = !!s.employIns;
+  const issueDate = new Date().toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric' });
+  const empText = s.employment === '非常勤' && s.weekDays
+    ? `非常勤（週${s.weekDays}日）` : (s.employment || '常勤');
+
+  const editInput = (id, val, disabled) => {
+    const d  = disabled ? ' disabled' : '';
+    const dc = disabled ? ' ps-disabled-input' : '';
+    return `<input type="number" id="${id}" class="ps-edit-input${dc}" value="${Math.round(val)}" min="0"${d} oninput="recalcPayslipTotals()">`;
+  };
+
+  // Daily rows
+  const dayRows = logs.length > 0 ? logs.map(l => {
+    const pd = calcPayDetails(l, s);
+    const d  = new Date(l.clockIn);
+    const w  = (pd.basicPay||0) + (pd.overtimePay||0) + (pd.nightPay||0);
+    const t  = calcTransport(l, s);
+    return `<tr>
+      <td>${d.getMonth()+1}/${d.getDate()}</td>
+      <td>${fmtTime(l.clockIn)}〜${fmtTime(l.clockOut)}</td>
+      <td>${fmtHours(pd.netH||0)}</td>
+      <td class="num">${fmtYen(w)}</td>
+      <td class="num">${fmtYen(t)}</td>
+      <td class="num">${fmtYen(w+t)}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="6" style="text-align:center;color:#aaa;">勤怠データなし</td></tr>';
+
+  const nightRow = nightPay > 0
+    ? `<tr><td class="ps-item-lbl">深夜手当</td><td class="ps-item-val num">${fmtYen(nightPay)}</td></tr>` : '';
+
+  const preview = document.getElementById('payslip-preview');
+  preview.classList.remove('hidden');
+  preview.innerHTML = `
+    <input type="hidden" id="ps-current-staff-id" value="${escHtml(staffId)}">
+    <input type="hidden" id="ps-current-month"    value="${escHtml(month)}">
+    <input type="hidden" id="ps-basic-pay"         value="${basicPay}">
+    <input type="hidden" id="ps-overtime-pay"      value="${overtimePay}">
+    <input type="hidden" id="ps-night-pay"         value="${nightPay}">
+    <input type="hidden" id="ps-commute"           value="${commute}">
+
+    <div class="ps-doc-title">給 与 明 細</div>
+    <div class="ps-doc-meta">
+      <span>${yr}年${mo}月分</span>
+      <span style="font-weight:700;">${escHtml(s.name)} 様</span>
+      <span>${empText}</span>
+      <span style="margin-left:auto;font-size:0.75rem;color:#888;">発行日：${issueDate}</span>
+    </div>
+
+    <table class="ps-table" style="margin-bottom:10px;">
+      <thead><tr><th colspan="6" class="ps-section-hd">勤　怠</th></tr></thead>
+      <tbody><tr>
+        <td class="ps-item-lbl">出勤日数</td><td class="ps-item-val">${workDays}日</td>
+        <td class="ps-item-lbl">勤務時間</td><td class="ps-item-val">${fmtHours(totalHours)}</td>
+        <td class="ps-item-lbl">残業時間</td><td class="ps-item-val">${fmtHours(totalOvertimeH)}</td>
+      </tr></tbody>
+    </table>
+
+    <div class="ps-2col">
+      <table class="ps-table">
+        <thead><tr><th colspan="2" class="ps-section-hd">支　給</th></tr></thead>
+        <tbody>
+          <tr><td class="ps-item-lbl">基本給</td><td class="ps-item-val num">${fmtYen(basicPay)}</td></tr>
+          <tr><td class="ps-item-lbl">残業手当</td><td class="ps-item-val num">${fmtYen(overtimePay)}</td></tr>
+          ${nightRow}
+          <tr><td class="ps-item-lbl">手当・その他</td><td class="ps-item-val">${editInput('ps-allowance', allowance, false)}</td></tr>
+          <tr><td class="ps-item-lbl">通勤手当</td><td class="ps-item-val num">${fmtYen(commute)}</td></tr>
+        </tbody>
+        <tfoot><tr class="ps-total-row">
+          <td>支給額合計</td><td class="num" id="ps-gross-display">${fmtYen(gross)}</td>
+        </tr></tfoot>
+      </table>
+      <table class="ps-table">
+        <thead><tr><th colspan="2" class="ps-section-hd">控　除</th></tr></thead>
+        <tbody>
+          <tr><td class="ps-item-lbl">健康保険${!si?'<span class="ps-na-badge">対象外</span>':''}</td>
+              <td class="ps-item-val">${editInput('ps-health', health, !si)}</td></tr>
+          <tr><td class="ps-item-lbl">介護保険${!si?'<span class="ps-na-badge">対象外</span>':''}</td>
+              <td class="ps-item-val">${editInput('ps-care', care, !si)}</td></tr>
+          <tr><td class="ps-item-lbl">厚生年金${!si?'<span class="ps-na-badge">対象外</span>':''}</td>
+              <td class="ps-item-val">${editInput('ps-pension', pension, !si)}</td></tr>
+          <tr><td class="ps-item-lbl">雇用保険${!ei?'<span class="ps-na-badge">対象外</span>':''}</td>
+              <td class="ps-item-val">${editInput('ps-employ', employ, !ei)}</td></tr>
+          <tr><td class="ps-item-lbl">所得税</td>
+              <td class="ps-item-val">${editInput('ps-income-tax', incomeTax, false)}</td></tr>
+          <tr><td class="ps-item-lbl">住民税</td>
+              <td class="ps-item-val">${editInput('ps-resident-tax', residentTax, false)}</td></tr>
+        </tbody>
+        <tfoot><tr class="ps-total-row">
+          <td>控除額合計</td><td class="num" id="ps-deduct-total-display">${fmtYen(totalDed)}</td>
+        </tr></tfoot>
+      </table>
+    </div>
+
+    <table class="ps-table ps-summary-block">
+      <tbody>
+        <tr>
+          <td class="ps-item-lbl">振込支給額</td>
+          <td class="ps-item-val num" id="ps-net-pay-display">${fmtYen(netPay)}</td>
+          <td class="ps-item-lbl">現金支給額</td>
+          <td class="ps-item-val">${editInput('ps-cash-pay', cashPay, false)}</td>
+        </tr>
+        <tr class="ps-total-row">
+          <td colspan="3" style="text-align:right;padding-right:12px;">合　計</td>
+          <td class="num" id="ps-total-display">${fmtYen(grandTotal)}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="ps-note-area">
+      <span class="ps-item-lbl" style="padding-top:5px;">備　考</span>
+      <textarea id="ps-note" class="ps-note-input" rows="2" placeholder="備考を入力...">${escHtml(note)}</textarea>
+    </div>
+
+    <div id="alert-payslip-actions"></div>
+    <div class="ps-actions no-print">
+      <button class="btn btn-outline btn-sm" onclick="recalcPayslip()">🔄 再計算</button>
+      <button class="btn btn-primary btn-sm"  onclick="savePayslipData()">💾 保存</button>
+    </div>
+
+    <div class="payslip-detail-title" style="margin-top:20px;">日別明細</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>日付</th><th>勤務時間帯</th><th>実働時間</th>
+          <th class="num">給与</th><th class="num">交通費</th><th class="num">小計</th>
+        </tr></thead>
+        <tbody>${dayRows}</tbody>
+      </table>
+    </div>
+
+    <div class="payslip-footer-note">
+      ※ 勤務時間は打刻ルール（30分単位）補正済。休憩は法定基準（6時間超45分・8時間超60分）自動控除。
+      所得税は源泉徴収税額表（月額・甲欄）2024年版の近似計算。実際の税額と差異が生じる場合は手動修正してください。
+    </div>`;
+
+  document.getElementById('btn-print').classList.remove('hidden');
+}
+
+/** Update totals from current input values without full recalculation */
+function recalcPayslipTotals() {
+  const g = id => {
+    const el = document.getElementById(id);
+    return el ? (parseInt(el.value || '0') || 0) : 0;
+  };
+  const gross = g('ps-basic-pay') + g('ps-overtime-pay') + g('ps-night-pay') + g('ps-commute') + g('ps-allowance');
+  const el0 = document.getElementById('ps-gross-display');
+  if (el0) el0.textContent = fmtYen(gross);
+
+  const totalDed = g('ps-health') + g('ps-care') + g('ps-pension') + g('ps-employ') + g('ps-income-tax') + g('ps-resident-tax');
+  const el1 = document.getElementById('ps-deduct-total-display');
+  if (el1) el1.textContent = fmtYen(totalDed);
+
+  const netPay = gross - totalDed;
+  const el2 = document.getElementById('ps-net-pay-display');
+  if (el2) el2.textContent = fmtYen(netPay);
+
+  const el3 = document.getElementById('ps-total-display');
+  if (el3) el3.textContent = fmtYen(netPay + g('ps-cash-pay'));
+}
+
+/** Recalculate all deductions from scratch using current gross then update inputs */
+function recalcPayslip() {
+  const staffId = (document.getElementById('ps-current-staff-id') || {}).value;
+  if (!staffId) return;
+  const s = loadStaff().find(x => x.id === staffId);
+  if (!s) return;
+
+  const g = id => (parseInt((document.getElementById(id) || {}).value || '0') || 0);
+  const gross = g('ps-basic-pay') + g('ps-overtime-pay') + g('ps-night-pay') + g('ps-commute') + g('ps-allowance');
+
+  const auto = calcDeductions(s, gross);
+  const set  = (id, val) => { const el = document.getElementById(id); if (el && !el.disabled) el.value = Math.round(val); };
+  set('ps-health',     auto.health);
+  set('ps-care',       auto.care);
+  set('ps-pension',    auto.pension);
+  set('ps-employ',     auto.employ);
+  set('ps-income-tax', auto.incomeTax);
+  // 住民税は手動のため再計算しない
+
+  recalcPayslipTotals();
+  showAlert('alert-payslip-actions', '再計算しました', 'success');
+}
+
+/** Save current payslip values to cache + GAS */
+function savePayslipData() {
+  const staffId = (document.getElementById('ps-current-staff-id') || {}).value;
+  const month   = (document.getElementById('ps-current-month')    || {}).value;
+  if (!staffId || !month) return;
+
+  const gv = id => (parseInt((document.getElementById(id) || {}).value || '0') || 0);
+  const isDisabled = id => !!((document.getElementById(id) || {}).disabled);
+
+  const data = {
+    id:            `${staffId}_${month}`,
+    staffId,
+    yearMonth:     month,
+    allowance:     gv('ps-allowance'),
+    healthIns:     isDisabled('ps-health')  ? null : gv('ps-health'),
+    careIns:       isDisabled('ps-care')    ? null : gv('ps-care'),
+    pension:       isDisabled('ps-pension') ? null : gv('ps-pension'),
+    employmentIns: isDisabled('ps-employ')  ? null : gv('ps-employ'),
+    incomeTax:     gv('ps-income-tax'),
+    residentTax:   gv('ps-resident-tax'),
+    cashPay:       gv('ps-cash-pay'),
+    note:          ((document.getElementById('ps-note') || {}).value || ''),
+  };
+
+  const payslips = loadPayslips();
+  payslips[`${staffId}_${month}`] = data;
+  savePayslips(payslips);
+  gasSyncPayslip(data);
+  showAlert('alert-payslip-actions', '保存しました', 'success');
+}
+
+function gasSyncPayslip(p) {
+  showSyncToast('同期中...', 'syncing');
+  gasRequest('savePayslip', p)
+    .then(() => showSyncToast('保存完了', 'ok', 2000))
+    .catch(err => showGasError('給与明細保存エラー: ' + err.message));
+}
+
+/* ============================================================
+   EXPORT / IMPORT
+============================================================ */
+function exportData() {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    staff:      loadStaff(),
+    logs:       loadLogs(),
+    shifts:     loadShifts(),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `nailsalon_${toYMD(new Date())}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data.staff) || !Array.isArray(data.logs)) throw new Error('invalid');
+      if (!confirm('現在のデータをインポートデータで上書きします。\nGASにも同期されます。よろしいですか？')) return;
+
+      saveStaff(data.staff);
+      saveLogs(data.logs);
+      if (data.shifts) saveShifts(data.shifts);
+      renderClockTab(); renderStaffTab(); renderAttendance();
+      refreshPayslipStaffSelect(); renderShiftTab();
+
+      // Sync all to GAS
+      showSyncToast('GASにデータを同期中...', 'syncing');
+      try {
+        const sp = data.staff.map(s => gasRequest('saveStaff', staffToGas(s)));
+        const lp = data.logs.map(l  => gasRequest('saveAttendance', logToGas(l)));
+        const shifts = data.shifts || {};
+        const shp = [];
+        for (const [, md] of Object.entries(shifts)) {
+          for (const [date, ids] of Object.entries(md.days || {})) {
+            for (const sid of ids) {
+              shp.push(gasRequest('saveShift', shiftRowToGas(sid, date, md.isConfirmed)));
+            }
+          }
+        }
+        await Promise.all([...sp, ...lp, ...shp]);
+        showSyncToast('同期完了', 'ok', 2500);
+        alert('インポートおよびGAS同期が完了しました');
+      } catch (err) {
+        showSyncToast('GAS同期失敗: ' + err.message, 'error', 5000);
+        alert('ローカルへのインポートは完了しましたが、GAS同期に失敗しました。\n' + err.message);
+      }
+    } catch {
+      alert('インポート失敗：JSONファイルの形式が正しくありません');
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+}
+
+/* ============================================================
+   SHIFT TAB – auto-proposal & calendar
+============================================================ */
+
+/** Staff color palette (index → CSS style string) */
+const SHIFT_PALETTES = [
+  'background:#fce4ec;color:#880e4f;',
+  'background:#e3f2fd;color:#0d47a1;',
+  'background:#e8f5e9;color:#1b5e20;',
+  'background:#fff8e1;color:#e65100;',
+  'background:#f3e5f5;color:#4a148c;',
+  'background:#e0f7fa;color:#006064;',
+  'background:#fbe9e7;color:#bf360c;',
+  'background:#f9fbe7;color:#33691e;',
+];
+
+/** Return { staffId: cssStyle } for legend & tag coloring */
+function buildColorMap(staffList) {
+  const map = {};
+  staffList.forEach((s, i) => {
+    map[s.id] = SHIFT_PALETTES[i % SHIFT_PALETTES.length];
+  });
+  return map;
+}
+
+/**
+ * Group an array of { ymd, dow } weekday objects by calendar week.
+ * Returns array of arrays, each representing Mon–Fri of one week.
+ */
+function groupByCalendarWeek(weekdays) {
+  const weeks = [];
+  let curMonday = null;
+  let curWeek   = [];
+
+  for (const day of weekdays) {
+    const d   = new Date(day.ymd);
+    const dow = d.getDay();                        // 0=Sun … 6=Sat
+    const mon = new Date(d);
+    mon.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1)); // shift to Monday
+    const monStr = toYMD(mon);
+
+    if (monStr !== curMonday) {
+      if (curWeek.length) weeks.push(curWeek);
+      curWeek   = [day];
+      curMonday = monStr;
+    } else {
+      curWeek.push(day);
+    }
+  }
+  if (curWeek.length) weeks.push(curWeek);
+  return weeks;
+}
+
+/**
+ * Core shift-generation algorithm.
+ * Returns { 'YYYY-MM-DD': [staffId, ...], ... } for every day of the month.
+ *
+ * Rules:
+ *  - 常勤  → scheduled every weekday (Mon-Fri)
+ *  - 非常勤 → weekDays days per week; each week, choose the days with the
+ *             fewest staff already scheduled (balancing daily load).
+ */
+function buildShiftDays(year, month) {
+  const staffList    = loadStaff().filter(s => (s.status || '在籍中') === '在籍中');
+  const daysInMonth  = new Date(year, month, 0).getDate(); // month is 1-based
+
+  // Build day info objects for every calendar day
+  const allDays = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month - 1, d);
+    allDays.push({ ymd: toYMD(date), dow: date.getDay(), staffIds: [] });
+  }
+
+  const weekdays = allDays.filter(d => d.dow >= 1 && d.dow <= 5);
+
+  // Step 1 – assign 常勤 staff to every weekday
+  const fulltime = staffList.filter(s => s.employment === '常勤');
+  for (const s of fulltime) {
+    for (const day of weekdays) day.staffIds.push(s.id);
+  }
+
+  // Step 2 – assign 非常勤 staff, week by week, filling lowest-count days first
+  const parttime = staffList.filter(s => s.employment === '非常勤');
+  const weeks    = groupByCalendarWeek(weekdays);
+
+  for (const s of parttime) {
+    const targetPerWeek = Math.min(s.weekDays || 3, 5);
+    for (const week of weeks) {
+      const n = Math.min(targetPerWeek, week.length);
+      // Sort this week's days by current staff count (ascending) for even distribution
+      const sorted = week.slice().sort((a, b) => a.staffIds.length - b.staffIds.length);
+      for (let i = 0; i < n; i++) sorted[i].staffIds.push(s.id);
+    }
+  }
+
+  // Convert to plain map
+  const result = {};
+  for (const day of allDays) result[day.ymd] = day.staffIds.slice();
+  return result;
+}
+
+/**
+ * Generate and save a shift proposal for the selected month.
+ */
+function generateShift() {
+  const month = document.getElementById('shift-month-sel').value;
+  if (!month) { showAlert('alert-shift', '対象月を選択してください', 'error'); return; }
+
+  const active = loadStaff().filter(s => (s.status || '在籍中') === '在籍中');
+  if (active.length === 0) { showAlert('alert-shift', '在籍中のスタッフがいません', 'error'); return; }
+
+  const [yr, mo] = month.split('-').map(Number);
+
+  // Tombstone any existing assignments for this month before saving new ones
+  const shifts = loadShifts();
+  const existing = shifts[month];
+  if (existing) {
+    for (const [date, ids] of Object.entries(existing.days || {})) {
+      for (const sid of ids) {
+        gasRequest('saveShift', { id: `${sid}_${date}`, staffId: '__del__', date, isConfirmed: false })
+          .catch(() => {});
+      }
+    }
+  }
+
+  const days    = buildShiftDays(yr, mo);
+  shifts[month] = { isConfirmed: false, days };
+  saveShifts(shifts);
+  renderShiftTab();
+  showAlert('alert-shift', `${yr}年${mo}月のシフト案を生成しました`);
+  gasSyncMonthShifts(month);
+}
+
+/** Re-generate (with confirm if data exists) */
+function regenerateShift() {
+  const month  = document.getElementById('shift-month-sel').value;
+  const shifts = loadShifts();
+  if (shifts[month] && !confirm('現在の提案を破棄して再生成しますか？')) return;
+  generateShift();
+}
+
+/** Confirm the proposal as official shift */
+function confirmShift() {
+  const month  = document.getElementById('shift-month-sel').value;
+  const shifts = loadShifts();
+  if (!shifts[month]) return;
+  const [yr, mo] = month.split('-').map(Number);
+  if (!confirm(`${yr}年${mo}月のシフトを確定しますか？\n確定後も編集・解除は可能です。`)) return;
+  shifts[month].isConfirmed = true;
+  saveShifts(shifts);
+  renderShiftTab();
+  showAlert('alert-shift', 'シフトを確定しました ✅');
+  gasSyncMonthShifts(month);
+}
+
+/** Revert confirmed shift back to proposal state */
+function unconfirmShift() {
+  const month  = document.getElementById('shift-month-sel').value;
+  const shifts = loadShifts();
+  if (!shifts[month]) return;
+  shifts[month].isConfirmed = false;
+  saveShifts(shifts);
+  renderShiftTab();
+  showAlert('alert-shift', '確定を解除しました。編集できます');
+  gasSyncMonthShifts(month);
+}
+
+/** Delete shift data for the selected month */
+function clearShift() {
+  const month = document.getElementById('shift-month-sel').value;
+  if (!confirm(`${month} のシフトデータを削除しますか？`)) return;
+  const shifts = loadShifts();
+  // Tombstone all rows for this month in GAS
+  const md = shifts[month];
+  if (md) {
+    for (const [date, ids] of Object.entries(md.days || {})) {
+      for (const sid of ids) {
+        gasRequest('saveShift', { id: `${sid}_${date}`, staffId: '__del__', date, isConfirmed: false })
+          .catch(() => {});
+      }
+    }
+  }
+  delete shifts[month];
+  saveShifts(shifts);
+  renderShiftTab();
+}
+
+/** Add a staff member to a specific day */
+function addStaffToDay(ymd, staffId) {
+  closeShiftDropdown();
+  const month  = document.getElementById('shift-month-sel').value;
+  const shifts = loadShifts();
+  if (!shifts[month]) return;
+  const days = shifts[month].days;
+  if (!days[ymd]) days[ymd] = [];
+  if (!days[ymd].includes(staffId)) days[ymd].push(staffId);
+  saveShifts(shifts);
+  renderShiftTab();
+  gasRequest('saveShift', shiftRowToGas(staffId, ymd, shifts[month].isConfirmed))
+    .catch(err => showGasError('シフト追加エラー: ' + err.message));
+}
+
+/** Remove a staff member from a specific day */
+function removeStaffFromDay(ymd, staffId) {
+  const month  = document.getElementById('shift-month-sel').value;
+  const shifts = loadShifts();
+  if (!shifts[month] || !shifts[month].days[ymd]) return;
+  shifts[month].days[ymd] = shifts[month].days[ymd].filter(id => id !== staffId);
+  saveShifts(shifts);
+  renderShiftTab();
+  // Tombstone this row in GAS (no deleteShift action, so mark as deleted)
+  gasRequest('saveShift', { id: `${staffId}_${ymd}`, staffId: '__del__', date: ymd, isConfirmed: false })
+    .catch(err => showGasError('シフト削除エラー: ' + err.message));
+}
+
+/* ---- Inline dropdown for adding staff to a day ---- */
+
+let _activeDropdown = null; // track open dropdown element
+
+function openShiftDropdown(ymd, triggerEl) {
+  closeShiftDropdown();
+
+  const month  = document.getElementById('shift-month-sel').value;
+  const shifts = loadShifts();
+  if (!shifts[month]) return;
+
+  const assigned  = shifts[month].days[ymd] || [];
+  const allActive = loadStaff().filter(s => (s.status || '在籍中') === '在籍中');
+  const available = allActive.filter(s => !assigned.includes(s.id));
+
+  if (available.length === 0) {
+    showAlert('alert-shift', 'この日は全スタッフが割り当て済みです', 'error'); return;
+  }
+
+  const dd = document.createElement('div');
+  dd.className = 'shift-dropdown';
+  dd.id        = 'shift-dropdown-active';
+  dd.innerHTML = available.map(s =>
+    `<button onclick="addStaffToDay('${ymd}','${s.id}')">${escHtml(s.name)}</button>`
+  ).join('');
+
+  // Position relative to trigger's parent wrapper
+  const wrap = triggerEl.closest('.shift-day-wrap') || triggerEl.parentElement;
+  wrap.style.position = 'relative';
+  wrap.appendChild(dd);
+  _activeDropdown = dd;
+
+  // Close on next outside click
+  setTimeout(() => {
+    document.addEventListener('click', _shiftDropdownOutside, { once: true });
+  }, 0);
+}
+
+function _shiftDropdownOutside(e) {
+  if (_activeDropdown && !_activeDropdown.contains(e.target)) closeShiftDropdown();
+}
+
+function closeShiftDropdown() {
+  if (_activeDropdown) { _activeDropdown.remove(); _activeDropdown = null; }
+  document.removeEventListener('click', _shiftDropdownOutside);
+}
+
+/**
+ * Build the HTML for the shift calendar grid.
+ * Returns an HTML string.
+ */
+function buildCalendarHTML(yr, mo, days, isConfirmed) {
+  const staffList   = loadStaff();
+  const colorMap    = buildColorMap(staffList);
+  const daysInMonth = new Date(yr, mo, 0).getDate();
+  const firstDow    = new Date(yr, mo - 1, 1).getDay(); // 0=Sun
+  const todayYMD    = toYMD(new Date());
+
+  const DAY_NAMES = ['日','月','火','水','木','金','土'];
+  let html = '<div class="shift-calendar"><div class="cal-grid">';
+
+  // Header row
+  for (let i = 0; i < 7; i++) {
+    const cls = i === 0 ? 'sun' : i === 6 ? 'sat' : '';
+    html += `<div class="cal-head ${cls}">${DAY_NAMES[i]}</div>`;
+  }
+
+  // Empty leading cells
+  for (let i = 0; i < firstDow; i++) html += '<div class="cal-empty"></div>';
+
+  // Day cells
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date     = new Date(yr, mo - 1, d);
+    const dow      = date.getDay();
+    const ymd      = toYMD(date);
+    const isWkend  = dow === 0 || dow === 6;
+    const isToday  = ymd === todayYMD;
+    const assigned = (days && days[ymd]) ? days[ymd] : [];
+
+    let cls = 'cal-day';
+    if (isWkend)     cls += ' cal-weekend';
+    if (isToday)     cls += ' cal-today';
+    if (isConfirmed) cls += ' cal-confirmed';
+    if (dow === 0)   cls += ' cal-sun';
+    if (dow === 6)   cls += ' cal-sat';
+
+    // Staff tags
+    const tagHTML = assigned.map(sid => {
+      const s    = staffList.find(x => x.id === sid);
+      const name = s ? s.name.slice(0, 4) : '?';
+      const style = colorMap[sid] || '';
+      if (isConfirmed) {
+        return `<div class="shift-tag" style="${style}">${escHtml(name)}</div>`;
+      }
+      return `<div class="shift-tag" style="${style}">
+        ${escHtml(name)}
+        <button class="shift-tag-remove"
+                onclick="removeStaffFromDay('${ymd}','${sid}')"
+                title="${escHtml(s ? s.name : '')} を削除">×</button>
+      </div>`;
+    }).join('');
+
+    const addBtn = isConfirmed ? '' :
+      `<button class="shift-add-btn"
+               onclick="openShiftDropdown('${ymd}', this)">＋</button>`;
+
+    html += `<div class="${cls}">
+      <div class="shift-day-wrap">
+        <div class="cal-date-num">${d}</div>
+        <div class="shift-tags">${tagHTML}</div>
+        ${addBtn}
+      </div>
+    </div>`;
+  }
+
+  // Trailing empty cells
+  const filled    = firstDow + daysInMonth;
+  const remainder = filled % 7;
+  if (remainder > 0) {
+    for (let i = remainder; i < 7; i++) html += '<div class="cal-empty"></div>';
+  }
+
+  html += '</div></div>'; // close cal-grid / shift-calendar
+
+  // Summary bar: days per staff
+  if (days) {
+    const countMap = {};
+    for (const ids of Object.values(days)) {
+      for (const id of ids) countMap[id] = (countMap[id] || 0) + 1;
+    }
+    const items = staffList
+      .filter(s => countMap[s.id] !== undefined)
+      .map(s => `<div class="shift-summary-item">${escHtml(s.name)}：<span>${countMap[s.id]}日</span></div>`)
+      .join('');
+    if (items) {
+      html += `<div class="shift-summary-bar">${items}</div>`;
+    }
+  }
+
+  return html;
+}
+
+/**
+ * Render the shift tab UI based on current selection and stored data.
+ */
+function renderShiftTab() {
+  const month      = document.getElementById('shift-month-sel').value;
+  const shifts     = loadShifts();
+  const calArea    = document.getElementById('shift-calendar-area');
+  const actionsDiv = document.getElementById('shift-actions');
+  const statusBdg  = document.getElementById('shift-status-badge');
+  const legendCard = document.getElementById('shift-legend-card');
+
+  if (!month || !shifts[month]) {
+    calArea.innerHTML = `<div class="empty-state">
+      <div class="icon">📅</div>
+      <p>対象月を選択して「シフトを自動生成」を押してください</p>
+    </div>`;
+    actionsDiv.classList.add('hidden');
+    actionsDiv.innerHTML = '';
+    statusBdg.innerHTML  = '';
+    legendCard.style.display = 'none';
+    return;
+  }
+
+  const { days, isConfirmed } = shifts[month];
+  const [yr, mo] = month.split('-').map(Number);
+
+  // Status badge
+  statusBdg.innerHTML = isConfirmed
+    ? '<span class="shift-status confirmed">✅ 確定済</span>'
+    : '<span class="shift-status proposal">✏️ 提案中（未確定）</span>';
+
+  // Calendar
+  calArea.innerHTML = buildCalendarHTML(yr, mo, days, isConfirmed);
+
+  // Action buttons
+  actionsDiv.classList.remove('hidden');
+  if (isConfirmed) {
+    actionsDiv.innerHTML = `
+      <button class="btn btn-secondary btn-sm" onclick="unconfirmShift()">✏️ 確定を解除して編集</button>
+      <button class="btn btn-danger btn-sm"    onclick="clearShift()">🗑 削除</button>`;
+  } else {
+    actionsDiv.innerHTML = `
+      <button class="btn btn-success"          onclick="confirmShift()">✅ このシフトで確定</button>
+      <button class="btn btn-outline btn-sm"   onclick="regenerateShift()">🔄 再生成</button>
+      <button class="btn btn-danger btn-sm"    onclick="clearShift()">🗑 削除</button>`;
+  }
+
+  // Staff color legend
+  const active = loadStaff().filter(s => (s.status || '在籍中') === '在籍中');
+  if (active.length > 0) {
+    legendCard.style.display = 'block';
+    const colorMap = buildColorMap(active);
+    document.getElementById('shift-legend-content').innerHTML = active.map(s => {
+      const empText = s.employment === '非常勤' && s.weekDays
+        ? `非常勤 週${s.weekDays}日` : (s.employment || '常勤');
+      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+        <span class="shift-tag" style="${colorMap[s.id]};font-size:0.75rem;padding:3px 9px;">
+          ${escHtml(s.name)}
+        </span>
+        <span class="text-sm text-muted">${empText}</span>
+      </div>`;
+    }).join('');
+  } else {
+    legendCard.style.display = 'none';
+  }
+}
+
+/* ============================================================
+   ANALYSIS TAB
+============================================================ */
+
+let _analysisSubTab = 'staffing'; // 'staffing' | 'cost'
+
+/** Main entry: called on month change or tab switch */
+function renderAnalysisTab() {
+  const month = document.getElementById('analysis-month-sel').value;
+  if (!month) return;
+
+  if (_analysisSubTab === 'staffing') {
+    renderStaffingAnalysis(month);
+  } else {
+    renderCostAnalysis(month);
+  }
+}
+
+/** Switch between sub-tabs */
+function switchAnalysisSubTab(tab) {
+  _analysisSubTab = tab;
+
+  document.querySelectorAll('.analysis-subtab').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.subtab === tab)
+  );
+  document.getElementById('analysis-staffing').classList.toggle('hidden', tab !== 'staffing');
+  document.getElementById('analysis-cost').classList.toggle('hidden', tab !== 'cost');
+
+  const month = document.getElementById('analysis-month-sel').value;
+  if (month) renderAnalysisTab();
+}
+
+/* ---- helpers ---- */
+
+/**
+ * Build one row of a horizontal bar chart.
+ * @param {string} label  - left label text
+ * @param {number} value  - actual value
+ * @param {number} maxVal - maximum value (determines 100% width)
+ * @param {string} valTxt - formatted value string shown on right
+ * @param {string} barCls - CSS class for bar color (e.g. 'bf-rose')
+ * @param {string} [extra] - optional extra HTML appended after val
+ * @param {string} [labelCls] - extra class for label cell
+ */
+function barRow(label, value, maxVal, valTxt, barCls, extra = '', labelCls = '') {
+  const pct = maxVal > 0 ? Math.max((value / maxVal) * 100, value > 0 ? 1 : 0).toFixed(1) : 0;
+  return `
+    <div class="bar-row">
+      <div class="bar-label ${labelCls}">${escHtml(String(label))}</div>
+      <div class="bar-track">
+        <div class="bar-fill ${barCls}" style="width:${pct}%"></div>
+      </div>
+      <div class="bar-val">${valTxt}</div>
+      ${extra}
+    </div>`;
+}
+
+/** KPI card HTML */
+function kpiCard(label, value, sub = '', style = '') {
+  return `<div class="kpi-card" style="${style}">
+    <div class="kpi-label">${label}</div>
+    <div class="kpi-value">${value}</div>
+    ${sub ? `<div class="kpi-sub">${sub}</div>` : ''}
+  </div>`;
+}
+
+/* ---- 分析① 人員バランス ---- */
+
+function renderStaffingAnalysis(month) {
+  const staffList   = loadStaff();
+  const allLogs     = loadLogs().filter(l => toYM(l.clockIn) === month);
+  const container   = document.getElementById('analysis-staffing');
+
+  const [yr, mo]    = month.split('-').map(Number);
+  const daysInMonth = new Date(yr, mo, 0).getDate();
+
+  // Build per-day staff count map and per-staff day count
+  const dayCounts    = {}; // { 'YYYY-MM-DD': number }
+  const staffDayCnt  = {}; // { staffId: number }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    dayCounts[toYMD(new Date(yr, mo - 1, d))] = 0;
+  }
+  for (const log of allLogs) {
+    const ymd = toYMD(log.clockIn);
+    if (ymd in dayCounts) dayCounts[ymd]++;
+    staffDayCnt[log.staffId] = (staffDayCnt[log.staffId] || 0) + 1;
+  }
+
+  // Stats (working days only)
+  const workingCounts = Object.values(dayCounts).filter(n => n > 0);
+  const totalWorkDays = workingCounts.length;
+  const maxCnt  = totalWorkDays ? Math.max(...workingCounts) : 0;
+  const minCnt  = totalWorkDays ? Math.min(...workingCounts) : 0;
+  const avgCnt  = totalWorkDays
+    ? workingCounts.reduce((a, b) => a + b, 0) / totalWorkDays : 0;
+
+  if (allLogs.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">📋</div>
+      <p>この月の勤怠データがありません</p></div>`;
+    return;
+  }
+
+  /** Determine bar color based on deviation from average */
+  function staffingBarCls(count) {
+    if (count === 0)            return 'bf-rose'; // shouldn't normally show
+    if (count < avgCnt - 0.49) return 'bf-red';
+    if (count > avgCnt + 0.49) return 'bf-blue';
+    return 'bf-green';
+  }
+
+  // Daily bars
+  const dailyBarsHtml = Object.entries(dayCounts).map(([ymd, cnt]) => {
+    const d   = new Date(ymd);
+    const dow = d.getDay();
+    const lbl = `${d.getMonth() + 1}/${d.getDate()}`;
+    const dim = (dow === 0 || dow === 6) ? 'opacity:0.4;' : '';
+    const cls = staffingBarCls(cnt);
+    return `<div style="${dim}">` +
+      barRow(lbl, cnt, maxCnt || 1, `${cnt}人`, cls) +
+      `</div>`;
+  }).join('');
+
+  // Staff rows
+  const staffBarsHtml = staffList.map(s => {
+    const cnt = staffDayCnt[s.id] || 0;
+    const pctTxt = `<div class="bar-pct">${cnt}日</div>`;
+    return barRow(s.name, cnt, maxCnt || 1, '', 'bf-rose', pctTxt, 'bar-label-lg');
+  }).join('');
+
+  container.innerHTML = `
+    <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">
+      ${kpiCard('最大出勤人数', `${maxCnt}人`, '', 'color:#1565c0;')}
+      ${kpiCard('最小出勤人数', `${minCnt}人`, '', 'color:#e53935;')}
+      ${kpiCard('平均出勤人数', `${avgCnt.toFixed(1)}人`, `勤務日ベース（${totalWorkDays}日）`)}
+    </div>
+
+    <div class="color-legend">
+      <div class="color-legend-item">
+        <span class="color-swatch" style="background:#e53935;"></span>少ない（平均未満）
+      </div>
+      <div class="color-legend-item">
+        <span class="color-swatch" style="background:#43a047;"></span>適正（平均±0.5）
+      </div>
+      <div class="color-legend-item">
+        <span class="color-swatch" style="background:#1565c0;"></span>多い（平均超）
+      </div>
+    </div>
+
+    <div class="an-section">📅 日別出勤人数</div>
+    <div class="bar-chart" style="max-height:420px;overflow-y:auto;padding-right:4px;">
+      ${dailyBarsHtml}
+    </div>
+
+    <div class="an-section">👤 スタッフ別月間勤務回数</div>
+    <div class="bar-chart">${staffBarsHtml}</div>`;
+}
+
+/* ---- 分析② 人件費分析 ---- */
+
+function renderCostAnalysis(month) {
+  const staffList = loadStaff();
+  const doneLogs  = loadLogs().filter(l => toYM(l.clockIn) === month && l.clockOut);
+  const container = document.getElementById('analysis-cost');
+
+  if (doneLogs.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">💴</div>
+      <p>この月の完了した勤怠データがありません</p></div>`;
+    return;
+  }
+
+  // Aggregate per-staff costs
+  const staffCosts = {}; // { staffId: { wage, transport, name } }
+  let totalWage = 0, totalTrans = 0;
+
+  for (const log of doneLogs) {
+    const s = staffList.find(x => x.id === log.staffId);
+    if (!s) continue;
+    const w = calcWage(log, s);
+    const t = calcTransport(log, s);
+    if (!staffCosts[s.id]) staffCosts[s.id] = { wage: 0, transport: 0, name: s.name };
+    staffCosts[s.id].wage      += w;
+    staffCosts[s.id].transport += t;
+    totalWage  += w;
+    totalTrans += t;
+  }
+
+  // Commute costs (one per active staff per month)
+  const activeIds    = [...new Set(doneLogs.map(l => l.staffId))];
+  const totalCommute = activeIds.reduce((sum, id) => {
+    const s = staffList.find(x => x.id === id);
+    return sum + (s ? (s.monthlyCommute || 0) : 0);
+  }, 0);
+
+  const totalCost = totalWage + totalTrans + totalCommute;
+
+  // Indicators
+  const workingDays = new Set(doneLogs.map(l => toYMD(l.clockIn))).size;
+  const avgPerDay   = workingDays   > 0 ? totalCost / workingDays   : 0;
+  const avgPerStaff = activeIds.length > 0 ? totalCost / activeIds.length : 0;
+
+  // Staff breakdown bars
+  const maxStaffCost = Math.max(...Object.values(staffCosts).map(x => x.wage + x.transport), 1);
+  const staffBarsHtml = Object.values(staffCosts).map(({ wage, transport, name }) => {
+    const total   = wage + transport;
+    const ratio   = totalCost > 0 ? `${(total / totalCost * 100).toFixed(1)}%` : '—';
+    const pctCell = `<div class="bar-pct">${ratio}</div>`;
+    return barRow(name, total, maxStaffCost, fmtYen(total), 'bf-rose', pctCell, 'bar-label-lg');
+  }).join('');
+
+  // Cost composition mini bars (wage / transport / commute)
+  const compositionRows = [
+    { label: '総給与',    val: totalWage,    cls: 'bf-rose' },
+    { label: '総交通費',  val: totalTrans,   cls: 'bf-teal' },
+    { label: '定期代合計', val: totalCommute, cls: 'bf-gold' },
+  ].map(({ label, val, cls }) =>
+    barRow(label, val, totalCost || 1, fmtYen(val), cls,
+      `<div class="bar-pct">${totalCost > 0 ? (val / totalCost * 100).toFixed(1) + '%' : '—'}</div>`,
+      'bar-label-lg')
+  ).join('');
+
+  // Daily cost bars
+  const [yr, mo]    = month.split('-').map(Number);
+  const daysInMonth = new Date(yr, mo, 0).getDate();
+  const dayCostMap  = {};
+  for (const log of doneLogs) {
+    const s = staffList.find(x => x.id === log.staffId);
+    if (!s) continue;
+    const ymd = toYMD(log.clockIn);
+    dayCostMap[ymd] = (dayCostMap[ymd] || 0) + calcWage(log, s) + calcTransport(log, s);
+  }
+  const maxDayCost = Math.max(...Object.values(dayCostMap), 1);
+
+  const dailyCostHtml = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ymd  = toYMD(new Date(yr, mo - 1, d));
+    const cost = dayCostMap[ymd] || 0;
+    const dow  = new Date(ymd).getDay();
+    const lbl  = `${mo}/${d}`;
+    const dim  = (dow === 0 || dow === 6) ? 'opacity:0.4;' : '';
+    dailyCostHtml.push(
+      `<div style="${dim}">` +
+      barRow(lbl, cost, maxDayCost, cost > 0 ? fmtYen(cost) : '—', 'bf-gold') +
+      `</div>`
+    );
+  }
+
+  container.innerHTML = `
+    <div class="an-section">📊 月次集計</div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);">
+      ${kpiCard('総給与',    fmtYen(totalWage))}
+      ${kpiCard('総交通費',  fmtYen(totalTrans))}
+      ${kpiCard('定期代合計', fmtYen(totalCommute))}
+      ${kpiCard('総人件費',  fmtYen(totalCost), '',
+          'background:linear-gradient(135deg,var(--pink-lightest),var(--beige));border-color:var(--pink);"')}
+    </div>
+
+    <div class="bar-chart">${compositionRows}</div>
+
+    <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);margin-top:14px;">
+      ${kpiCard('1日平均人件費',    fmtYen(Math.round(avgPerDay)),   `勤務日${workingDays}日ベース`)}
+      ${kpiCard('1人あたり平均人件費', fmtYen(Math.round(avgPerStaff)), `${activeIds.length}名ベース`)}
+    </div>
+
+    <div class="an-section">👤 スタッフ別人件費（給与＋交通費）</div>
+    <div class="bar-chart">${staffBarsHtml}</div>
+
+    <div class="an-section">📅 日別人件費</div>
+    <div class="bar-chart" style="max-height:420px;overflow-y:auto;padding-right:4px;">
+      ${dailyCostHtml.join('')}
+    </div>`;
+}
+
+/* ============================================================
+   GAS Communication Layer
+============================================================ */
+
+/**
+ * Send a request to GAS.
+ * All requests use GET with URL parameters to avoid CORS preflight issues.
+ */
+async function gasRequest(action, payload = {}) {
+  const url = new URL(GAS_URL);
+  url.searchParams.set('action', action);
+  for (const [k, v] of Object.entries(payload)) {
+    url.searchParams.set(k, v === null || v === undefined ? '' : String(v));
+  }
+  const res = await fetch(url.toString(), { redirect: 'follow' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+/* ---- Loading overlay ---- */
+function showLoading(msg = 'データを読み込んでいます...') {
+  document.getElementById('loading-msg').textContent = msg;
+  document.getElementById('loading-overlay').classList.remove('hidden');
+}
+function hideLoading() {
+  document.getElementById('loading-overlay').classList.add('hidden');
+}
+
+/* ---- Sync toast (non-blocking) ---- */
+let _toastTimer = null;
+function showSyncToast(msg, type = 'syncing', duration = 0) {
+  const el = document.getElementById('sync-toast');
+  el.textContent = msg;
+  el.className   = `sync-toast ${type}`;
+  if (_toastTimer) clearTimeout(_toastTimer);
+  if (duration > 0) _toastTimer = setTimeout(() => el.classList.add('hidden'), duration);
+}
+function hideSyncToast() {
+  document.getElementById('sync-toast').classList.add('hidden');
+}
+
+/** Show a non-fatal GAS error in the toast */
+function showGasError(msg) {
+  showSyncToast('⚠️ ' + msg, 'error', 6000);
+  console.warn('[GAS Error]', msg);
+}
+
+/* ---- Data parsers: GAS rows → internal objects ---- */
+
+function parseStaffRows(rows) {
+  return rows.filter(r => r[0] != null && String(r[0]).trim() !== '').map(r => ({
+    id:             String(r[0]),
+    name:           String(r[1] || ''),
+    hourlyRate:     Number(r[2]) || 0,      // GAS: hourlyWage
+    dailyTransport: Number(r[3]) || 0,      // GAS: transportFee
+    monthlyCommute: Number(r[4]) || 0,
+    status:         String(r[5] || '在籍中'),
+    employment:     String(r[6] || '常勤'), // GAS: employmentType
+    weekDays:       r[7] ? Number(r[7]) : null, // GAS: weeklyDays
+    route:          String(r[8]  || ''),    // GAS: commuteRoute
+    address:        String(r[9]  || ''),
+    email:          String(r[10] || ''),
+    phone:          String(r[11] || ''),
+    memo:           String(r[12] || ''),
+    payType:        String(r[13] || 'hourly'),
+    monthlySalary:  r[14] ? Number(r[14]) : null,
+    birthdate:      String(r[15] || ''),
+    dependents:     r[16] ? Number(r[16]) : 0,
+    stdSalary:      r[17] ? Number(r[17]) : null,
+    socialIns:      r[18] === true || r[18] === 'true' || r[18] === 'TRUE' || r[18] === 1,
+    employIns:      r[19] === true || r[19] === 'true' || r[19] === 'TRUE' || r[19] === 1,
+  }));
+}
+
+function parseAttendanceRows(rows) {
+  function toIso(v) {
+    if (v == null || v === '') return null;
+    if (v instanceof Date) return v.toISOString();
+    return String(v);
+  }
+  function toNum(v) {
+    if (v === '' || v == null) return null;
+    const n = Number(v); return isNaN(n) ? null : n;
+  }
+  return rows.filter(r => r[0] != null && String(r[0]).trim() !== '').map(r => ({
+    id:                 String(r[0]),
+    staffId:            String(r[1]),
+    clockIn:            toIso(r[2]),
+    clockOut:           toIso(r[3]),
+    adjustedHourlyRate: toNum(r[4]),  // GAS col4: adjustedWage  = hourly override
+    adjustedWage:       toNum(r[5]),  // GAS col5: adjustedPay   = fixed pay override
+    adjustedTransport:  toNum(r[6]),
+    isModified:         r[7] === true || r[7] === 'true' || r[7] === 1 || r[7] === 'TRUE',
+  }));
+}
+
+/**
+ * Parse flat shift rows into our nested structure:
+ * { 'YYYY-MM': { isConfirmed: bool, days: { 'YYYY-MM-DD': [staffId, ...] } } }
+ * Rows with staffId='__del__' or '' are ignored (tombstones).
+ */
+function parseShiftRows(rows) {
+  const result = {};
+  for (const r of rows) {
+    if (r[0] == null || String(r[0]).trim() === '') continue;
+    const staffId = String(r[1] || '');
+    if (staffId === '__del__' || staffId === '') continue;
+    const date        = String(r[2]);
+    const isConfirmed = r[3] === true || r[3] === 'true' || r[3] === 1 || r[3] === 'TRUE';
+    const month       = date.slice(0, 7);
+    if (!result[month]) result[month] = { isConfirmed: false, days: {} };
+    if (!result[month].days[date]) result[month].days[date] = [];
+    if (!result[month].days[date].includes(staffId)) result[month].days[date].push(staffId);
+    if (isConfirmed) result[month].isConfirmed = true;
+  }
+  return result;
+}
+
+/* ---- Data mappers: internal objects → GAS payload ---- */
+
+function staffToGas(s) {
+  return {
+    id:             s.id,
+    name:           s.name,
+    hourlyWage:     s.hourlyRate,
+    transportFee:   s.dailyTransport,
+    monthlyCommute: s.monthlyCommute || 0,
+    status:         s.status         || '在籍中',
+    employmentType: s.employment     || '常勤',
+    weeklyDays:     s.weekDays       ?? '',
+    commuteRoute:   s.route          || '',
+    address:        s.address        || '',
+    email:          s.email          || '',
+    phone:          s.phone          || '',
+    memo:           s.memo           || '',
+    payType:        s.payType        || 'hourly',
+    monthlySalary:  s.monthlySalary  ?? '',
+    birthdate:      s.birthdate      || '',
+    dependents:     s.dependents     ?? 0,
+    stdSalary:      s.stdSalary      ?? '',
+    socialIns:      !!s.socialIns,
+    employIns:      !!s.employIns,
+  };
+}
+
+function logToGas(l) {
+  return {
+    id:              l.id,
+    staffId:         l.staffId,
+    clockIn:         l.clockIn   || '',
+    clockOut:        l.clockOut  || '',
+    adjustedWage:    l.adjustedHourlyRate != null ? l.adjustedHourlyRate : '',  // GAS col4
+    adjustedPay:     l.adjustedWage       != null ? l.adjustedWage       : '',  // GAS col5
+    adjustedTransport: l.adjustedTransport != null ? l.adjustedTransport : '',
+    isAdjusted:      l.isModified || false,
+  };
+}
+
+function shiftRowToGas(staffId, date, isConfirmed) {
+  return { id: `${staffId}_${date}`, staffId, date, isConfirmed: !!isConfirmed };
+}
+
+/* ---- GAS sync helpers ---- */
+
+/** Sync a single staff record to GAS (fire-and-forget) */
+function gasSyncStaff(s) {
+  showSyncToast('同期中...', 'syncing');
+  gasRequest('saveStaff', staffToGas(s))
+    .then(() => showSyncToast('保存完了', 'ok', 2000))
+    .catch(err => showGasError('スタッフ保存エラー: ' + err.message));
+}
+
+/** Sync a single log record to GAS (fire-and-forget) */
+function gasSyncLog(l) {
+  showSyncToast('同期中...', 'syncing');
+  gasRequest('saveAttendance', logToGas(l))
+    .then(() => showSyncToast('保存完了', 'ok', 2000))
+    .catch(err => showGasError('打刻保存エラー: ' + err.message));
+}
+
+/** Sync all shift assignments for a given month (fire-and-forget) */
+function gasSyncMonthShifts(month) {
+  const shifts = loadShifts();
+  const md = shifts[month];
+  if (!md) return;
+  showSyncToast('シフト同期中...', 'syncing');
+  const promises = [];
+  for (const [date, ids] of Object.entries(md.days || {})) {
+    for (const sid of ids) {
+      promises.push(gasRequest('saveShift', shiftRowToGas(sid, date, md.isConfirmed)));
+    }
+  }
+  Promise.all(promises)
+    .then(() => showSyncToast('シフト保存完了', 'ok', 2500))
+    .catch(err => showGasError('シフト保存エラー: ' + err.message));
+}
+
+function parsePayslipRows(rows) {
+  const result = {};
+  const toNum  = v => (v === '' || v == null) ? null : (Number(v) || 0);
+  for (const r of rows) {
+    if (!r[0]) continue;
+    const id = String(r[0]);
+    result[id] = {
+      id,
+      staffId:       String(r[1]  || ''),
+      yearMonth:     String(r[2]  || ''),
+      allowance:     toNum(r[3])  ?? 0,
+      healthIns:     toNum(r[4]),
+      careIns:       toNum(r[5]),
+      pension:       toNum(r[6]),
+      employmentIns: toNum(r[7]),
+      incomeTax:     toNum(r[8]),
+      residentTax:   toNum(r[9])  ?? 0,
+      cashPay:       toNum(r[10]) ?? 0,
+      note:          String(r[11] || ''),
+    };
+  }
+  return result;
+}
+
+/** Initial full fetch from GAS → populate cache */
+async function fetchAllFromGas() {
+  const raw = await gasRequest('getAll');
+
+  // GAS returns 2D arrays; an empty sheet returns [['']] — filter that out
+  const staffRows   = (raw.staff     || []).filter(r => Array.isArray(r) && r.length > 1);
+  const attRows     = (raw.attendance|| []).filter(r => Array.isArray(r) && r.length > 1);
+  const shiftRows   = (raw.shift     || []).filter(r => Array.isArray(r) && r.length > 1);
+  const payslipRows = (raw.payslips  || []).filter(r => Array.isArray(r) && r.length > 1);
+
+  saveStaff(parseStaffRows(staffRows));
+  saveLogs(parseAttendanceRows(attRows));
+  saveShifts(parseShiftRows(shiftRows));
+  savePayslips(parsePayslipRows(payslipRows));
+}
+
+/* ============================================================
+   Security helper - HTML escape
+============================================================ */
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/* ============================================================
+   Keyboard shortcut: Enter key for login
+============================================================ */
+document.getElementById('login-pw').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+/* ============================================================
+   Boot
+============================================================ */
+initApp();
+</script>
+</body>
+</html>
