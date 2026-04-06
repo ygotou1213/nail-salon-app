@@ -1167,6 +1167,14 @@
       </div>
     </div>
 
+    <!-- Staff personal clock history (visible to all) -->
+    <div class="card hidden" id="staff-clock-history-card">
+      <div class="card-title">本日の打刻状況</div>
+      <div id="staff-today-status"></div>
+      <div class="card-title" style="margin-top:16px;">直近30日の勤怠履歴</div>
+      <div id="staff-history-table"></div>
+    </div>
+
     <!-- Today's log table (admin only) -->
     <div class="card admin-only hidden" id="today-log-card">
       <div class="card-title">本日の打刻状況</div>
@@ -2090,10 +2098,60 @@ function refreshClockAction(staff, logs, todayYMD) {
   document.getElementById('btn-clock-in').disabled  = isWorking || isDone;
   document.getElementById('btn-clock-out').disabled = !isWorking;
   document.getElementById('clock-action-area').classList.remove('hidden');
+  renderStaffClockHistory(staff);
 }
 
 function hideClockAction() {
   document.getElementById('clock-action-area').classList.add('hidden');
+  document.getElementById('staff-clock-history-card').classList.add('hidden');
+}
+
+/** Render personal clock history for selected staff */
+function renderStaffClockHistory(staff) {
+  const logs     = loadLogs();
+  const today    = new Date();
+  const todayYMD = toYMD(today);
+
+  // Today's status
+  const todayLog = getTodayLog(logs, staff.id, todayYMD);
+  const { label, cls } = getStatusInfo(todayLog);
+  const todayIn  = todayLog ? fmtTime(todayLog.clockIn)  : '—';
+  const todayOut = todayLog ? fmtTime(todayLog.clockOut) : '—';
+  document.getElementById('staff-today-status').innerHTML = `
+    <table class="data-table">
+      <thead><tr>
+        <th>ステータス</th><th>打刻出勤</th><th>打刻退勤</th>
+      </tr></thead>
+      <tbody><tr>
+        <td><span class="badge ${cls}">${label}</span></td>
+        <td>${todayIn}</td>
+        <td>${todayOut}</td>
+      </tr></tbody>
+    </table>`;
+
+  // Last 30 days table
+  const rows = [];
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const ymd = toYMD(d);
+    const log = logs.find(l => l.staffId === staff.id && toYMD(l.clockIn) === ymd) || null;
+    const dateLabel = `${d.getMonth() + 1}/${d.getDate()}`;
+    const ci  = log ? fmtTime(log.clockIn)              : '—';
+    const co  = log ? fmtTime(log.clockOut)             : '—';
+    const rs  = log ? fmtTime(roundClockIn(log.clockIn)): '—';
+    const re  = log && log.clockOut ? fmtTime(roundClockOut(log.clockOut)) : '—';
+    rows.push(`<tr><td>${dateLabel}</td><td>${ci}</td><td>${co}</td><td>${rs}</td><td>${re}</td></tr>`);
+  }
+  document.getElementById('staff-history-table').innerHTML = `
+    <table class="data-table">
+      <thead><tr>
+        <th>日付</th><th>打刻出勤</th><th>打刻退勤</th><th>開始(丸め)</th><th>終了(丸め)</th>
+      </tr></thead>
+      <tbody>${rows.join('')}</tbody>
+    </table>`;
+
+  document.getElementById('staff-clock-history-card').classList.remove('hidden');
 }
 
 /** Handle clock-in / clock-out button click */
