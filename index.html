@@ -2075,6 +2075,45 @@ function parseJsonSafe(v, fallback) {
   if (Array.isArray(v) || (v && typeof v === 'object')) return v;
   try { return JSON.parse(v); } catch { return fallback; }
 }
+
+function normalizePatternObject(pattern) {
+  if (!pattern) return { pattern: '遅番' };
+  if (typeof pattern === 'object') return {
+    pattern: pattern.pattern || '遅番',
+    customStart: pattern.customStart || '',
+    customEnd: pattern.customEnd || '',
+  };
+  const raw = String(pattern || '').trim();
+  if (raw.startsWith('{')) {
+    const parsed = parseJsonSafe(raw, null);
+    if (parsed && typeof parsed === 'object') return normalizePatternObject(parsed);
+  }
+  return { pattern: raw || '遅番' };
+}
+
+function serializePatternObject(pattern) {
+  const pat = normalizePatternObject(pattern);
+  if (pat.pattern === 'カスタム' && pat.customStart && pat.customEnd) {
+    return JSON.stringify(pat);
+  }
+  return pat.pattern || '遅番';
+}
+
+function fillPatternTimeFromRequests(staffId, ymd, pattern) {
+  const pat = normalizePatternObject(pattern);
+  if (pat.pattern !== 'カスタム' || (pat.customStart && pat.customEnd)) return pat;
+  const req = ((loadShiftRequests()[ymd.slice(0, 7)] || {})[staffId]) || {};
+  const specific = (req.specificDates || []).find(sd => sd.date === ymd && sd.type === 'custom');
+  if (specific && specific.start && specific.end) {
+    return { ...pat, customStart: specific.start, customEnd: specific.end };
+  }
+  const dow = new Date(ymd + 'T00:00:00').getDay();
+  const weekday = (req.weekdayTimePrefs || {})[dow];
+  if (weekday && weekday.start && weekday.end) {
+    return { ...pat, customStart: weekday.start, customEnd: weekday.end };
+  }
+  return pat;
+}
 function loadPayslips() { return { ..._cache.payslips }; }
 function savePayslips(d){ _cache.payslips = d; }
 
@@ -3899,8 +3938,7 @@ function importData(ev) {
           for (const [date, ids] of Object.entries(md.days || {})) {
             for (const sid of ids) {
               const pat = ((md.patterns || {})[date] || {})[sid];
-              const patName = (typeof pat === 'string') ? pat : ((pat && pat.pattern) ? pat.pattern : '遅番');
-              shp.push(gasRequest('saveShift', shiftRowToGas(sid, date, md.isConfirmed, patName)));
+              shp.push(gasRequest('saveShift', shiftRowToGas(sid, date, md.isConfirmed, pat)));
             }
           }
         }
@@ -4541,7 +4579,7 @@ function buildCalendarHTML(yr, mo, shiftData, isConfirmed) {
       const s       = staffList.find(x => x.id === sid);
       const name    = s ? s.name.slice(0, 4) : '?';
       const style   = colorMap[sid] || '';
-      const patObj  = dayPats[sid] || {};
+      const patObj  = fillPatternTimeFromRequests(sid, ymd, dayPats[sid] || {});
       const patName = (typeof patObj === 'string') ? patObj : (patObj.pattern || '遅番');
       const patInfo = SHIFT_PATTERNS[patName] || SHIFT_PATTERNS['遅番'];
       const timeStr = patObj.customStart
@@ -4742,10 +4780,12 @@ async function renderShiftShareView(month) {
   const DOW = ['日','月','火','水','木','金','土'];
 
   function getTimeLabel(staffId, ymd) {
-    const pat = (patterns[ymd] || {})[staffId];
+    const pat = fillPatternTimeFromRequests(staffId, ymd, (patterns[ymd] || {})[staffId]);
     if (!pat) return '';
     const name = pat.pattern || '';
-    if (name === 'カスタム') return `${pat.customStart || ''}〜${pat.customEnd || ''}`;
+    if (name === 'カスタム') {
+      return pat.customStart && pat.customEnd ? `${pat.customStart}〜${pat.customEnd}` : 'カスタム';
+    }
     const info = SHIFT_PATTERNS[name];
     return info ? `${info.start}〜${info.end}` : name;
   }
@@ -5769,7 +5809,7 @@ function parseShiftRows(rows) {
     const date        = normalizeGasDateValue(r[2]);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
     const isConfirmed = r[3] === true || r[3] === 'true' || r[3] === 1 || r[3] === 'TRUE';
-    const pattern     = String(r[4] || '遅番');
+    const pattern     = normalizePatternObject(r[4] || '遅番');
     const month       = date.slice(0, 7);
     if (!result[month]) result[month] = { isConfirmed: false, days: {}, patterns: {} };
     if (!result[month].days[date]) result[month].days[date] = [];
@@ -5778,7 +5818,7 @@ function parseShiftRows(rows) {
       result[month].days[date].push(staffId);
     }
     const existingPattern = result[month].patterns[date][staffId];
-    if (!existingPattern || isConfirmed) result[month].patterns[date][staffId] = { pattern };
+    if (!existingPattern || isConfirmed) result[month].patterns[date][staffId] = pattern;
     if (isConfirmed) result[month].isConfirmed = true;
   }
   return result;
@@ -5895,7 +5935,7 @@ function shiftRowToGas(staffId, date, isConfirmed, pattern) {
     staffId,
     date,
     isConfirmed: !!isConfirmed,
-    shiftPattern: pattern || '遅番',
+    shiftPattern: serializePatternObject(pattern),
   };
 }
 
@@ -5944,8 +5984,7 @@ function gasSyncMonthShifts(month) {
   for (const [date, ids] of Object.entries(md.days || {})) {
     for (const sid of ids) {
       const pat = ((md.patterns || {})[date] || {})[sid];
-      const patName = (typeof pat === 'string') ? pat : ((pat && pat.pattern) ? pat.pattern : '遅番');
-      rows.push(shiftRowToGas(sid, date, md.isConfirmed, patName));
+      rows.push(shiftRowToGas(sid, date, md.isConfirmed, fillPatternTimeFromRequests(sid, date, pat)));
     }
   }
   if (rows.length === 0) { showSyncToast('保存完了', 'ok', 1500); return; }

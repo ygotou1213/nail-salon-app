@@ -18,3 +18,7 @@ This project is a Git repository and should normally be maintained directly on `
 
 - Use clear commit messages because this project appears to carry user-facing feature work.
 - Review browser-facing changes locally before shipping when possible.
+- For GAS/Google Sheets date fields, always store or return canonical strings
+  (`YYYY-MM` or `YYYY-MM-DD`) and normalize on both read and write. Sheets may
+  auto-convert strings into Date objects, which can shift display keys and break
+  month/date matching in the SPA.
