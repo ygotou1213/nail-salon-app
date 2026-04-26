@@ -4727,6 +4727,34 @@ function getShiftRequestCard(staffId) {
     .find(el => el.dataset.staffId === staffId);
 }
 
+/**
+ * Sync the current DOM checkbox / weekday-time state into the cache.
+ * Must be called before any operation that re-renders the form, so that
+ * checkbox selections are not lost when the form is rebuilt.
+ */
+function syncShiftRequestFormToCache() {
+  const month = document.getElementById('shift-month-sel').value;
+  if (!month) return;
+  const reqs = loadShiftRequests();
+  if (!reqs[month]) reqs[month] = {};
+  for (const card of document.querySelectorAll('.shift-request-card')) {
+    const staffId = card.dataset.staffId;
+    const preferDows = [...card.querySelectorAll('.prefer-dows input[type="checkbox"]:checked')].map(el => Number(el.value));
+    const offDows    = [...card.querySelectorAll('.off-dows input[type="checkbox"]:checked')].map(el => Number(el.value));
+    const weekdayTimePrefs = {};
+    for (const checkbox of card.querySelectorAll('.weekday-time-enabled:checked')) {
+      const item = checkbox.closest('.weekday-time-item');
+      weekdayTimePrefs[checkbox.dataset.dow] = {
+        start: item.querySelector('.weekday-time-start').value,
+        end:   item.querySelector('.weekday-time-end').value,
+      };
+    }
+    const existing = reqs[month][staffId] || {};
+    reqs[month][staffId] = { ...existing, preferDaysOfWeek: preferDows, offDaysOfWeek: offDows, weekdayTimePrefs };
+  }
+  saveShiftRequests(reqs);
+}
+
 /** Render request forms for all active staff */
 function renderShiftRequestForm() {
   const month   = document.getElementById('shift-month-sel').value;
@@ -4847,6 +4875,7 @@ function addSpecificDate(staffId) {
   if (!staffId || !month) return;
   const card = getShiftRequestCard(staffId);
   if (!card) return;
+  syncShiftRequestFormToCache();
 
   const date  = card.querySelector('.new-spec-date').value;
   const type  = card.querySelector('.new-spec-type').value;
@@ -4870,6 +4899,7 @@ function addSpecificDate(staffId) {
 function removeSpecificDate(staffId, idx) {
   const month   = document.getElementById('shift-month-sel').value;
   if (!staffId || !month) return;
+  syncShiftRequestFormToCache();
   const reqs = loadShiftRequests();
   const req  = (reqs[month] || {})[staffId];
   if (!req) return;
@@ -4884,6 +4914,7 @@ function removeSpecificDate(staffId, idx) {
 function addChoiceDateGroup(staffId) {
   const month = document.getElementById('shift-month-sel').value;
   if (!staffId || !month) return;
+  syncShiftRequestFormToCache();
   const card = getShiftRequestCard(staffId);
   if (!card) return;
   const dates = [
@@ -4910,6 +4941,7 @@ function addChoiceDateGroup(staffId) {
 function removeChoiceDateGroup(staffId, idx) {
   const month = document.getElementById('shift-month-sel').value;
   if (!staffId || !month) return;
+  syncShiftRequestFormToCache();
   const reqs = loadShiftRequests();
   const req = (reqs[month] || {})[staffId];
   if (!req) return;
@@ -4965,7 +4997,7 @@ function saveShiftRequestForm() {
   }
   // Sync to GAS
   showSyncToast('同期中...', 'syncing');
-  gasRequest('saveBulkShiftRequests', { rows: JSON.stringify(rows), replaceMonth: month })
+  gasRequest('saveBulkShiftRequests', { rows: JSON.stringify(rows) })
     .then(() => {
       saveShiftRequests(reqs);
       showSyncToast('全スタッフのシフト希望を保存しました', 'ok', 2000);
@@ -5430,7 +5462,7 @@ async function gasRequest(action, payload = {}) {
   for (const [k, v] of Object.entries(payload)) {
     url.searchParams.set(k, v === null || v === undefined ? '' : String(v));
   }
-  const res = await fetch(url.toString(), { redirect: 'follow' });
+  const res = await fetch(url.toString(), { redirect: 'follow', cache: 'no-store' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
   if (json.error) throw new Error(json.error);
