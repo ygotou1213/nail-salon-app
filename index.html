@@ -3737,6 +3737,7 @@ function buildShiftDays(year, month) {
     .flatMap(c => { try { return parseJsonSafe(c.params, {}).daysOfWeek || []; } catch { return []; } });
 
   /* ── Assign staff ── */
+  const fullTimeRules = {};
   for (const [staffIdx, staff] of staffList.entries()) {
     const req          = reqMap[staff.id] || {};
     const preferDows   = parseJsonSafe(req.preferDaysOfWeek, []);
@@ -3756,6 +3757,22 @@ function buildShiftDays(year, month) {
     };
 
     if (staff.employment === '常勤') {
+      fullTimeRules[staff.id] = {
+        assignPattern,
+        canRemove(day) {
+          const ov = dateOverride[day.ymd];
+          return !day.isBusyDay && !(ov && (ov.type === 'work' || ov.type === 'custom'));
+        },
+        canAdd(day) {
+          const ov = dateOverride[day.ymd];
+          if (day.isBusyDay) return false;
+          if (ov && ov.type === 'off') return false;
+          if (offDows.includes(day.dow)) return false;
+          if (preferOffDows.includes(day.dow)) return false;
+          return true;
+        },
+      };
+
       // Build rest-day set targeting 8 days off per month
       const TARGET_REST = 8;
       const restSet = new Set();
@@ -3853,6 +3870,48 @@ function buildShiftDays(year, month) {
         }
       }
     }
+  }
+
+  /* ── Rebalance weekday staffing ──
+     常勤の休み数を保ったまま、平日に全員が固まる日を減らす。 */
+  const fullTimeCount = Object.keys(fullTimeRules).length;
+  const weekdayTarget = fullTimeCount <= 3 ? Math.max(1, fullTimeCount - 1) : 3;
+  const weekdayDays = allDays.filter(day => !day.isBusyDay);
+  let rebalanceGuard = 0;
+  while (rebalanceGuard++ < 500) {
+    const overDays = weekdayDays
+      .filter(day => day.staffIds.length > weekdayTarget)
+      .sort((a, b) => b.staffIds.length - a.staffIds.length || a.ymd.localeCompare(b.ymd));
+    const underDays = weekdayDays
+      .filter(day => day.staffIds.length < weekdayTarget)
+      .sort((a, b) => a.staffIds.length - b.staffIds.length || a.ymd.localeCompare(b.ymd));
+    if (overDays.length === 0 || underDays.length === 0) break;
+
+    let moved = false;
+    for (const overDay of overDays) {
+      for (const underDay of underDays) {
+        const moveId = overDay.staffIds.find(sid => {
+          const rule = fullTimeRules[sid];
+          return rule &&
+            !underDay.staffIds.includes(sid) &&
+            rule.canRemove(overDay) &&
+            rule.canAdd(underDay);
+        });
+        if (!moveId) continue;
+
+        const rule = fullTimeRules[moveId];
+        overDay.staffIds = overDay.staffIds.filter(sid => sid !== moveId);
+        delete overDay.patterns[moveId];
+
+        const { pattern, customStart, customEnd } = rule.assignPattern(underDay);
+        underDay.staffIds.push(moveId);
+        underDay.patterns[moveId] = { pattern, customStart, customEnd };
+        moved = true;
+        break;
+      }
+      if (moved) break;
+    }
+    if (!moved) break;
   }
 
   /* ── Balance busy-day shifts (土日祝): spread 早番 / 遅番 ── */
