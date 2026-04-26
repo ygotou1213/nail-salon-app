@@ -2435,6 +2435,9 @@ function saveStaffFromModal() {
       showAlert('alert-staff-modal', '標準報酬月額は0以上の整数を入力してください', 'error', 0); return;
     }
   }
+  if (socialIns && !stdSalary) {
+    showAlert('alert-staff-modal', '社会保険適用の場合は標準報酬月額を入力してください', 'error', 0); return;
+  }
   // メール簡易チェック
   if (email && !email.includes('@')) {
     showAlert('alert-staff-modal', 'メールアドレスの形式が正しくありません（@が必要です）', 'error', 0); return;
@@ -2471,7 +2474,15 @@ function saveStaffFromModal() {
   renderClockTab();
   refreshPayslipStaffSelect();
   showAlert('alert-staff', editId ? 'スタッフ情報を更新しました' : 'スタッフを追加しました');
-  if (savedStaff) gasSyncStaff(savedStaff);
+  if (savedStaff) {
+    showSyncToast('同期中...', 'syncing');
+    gasRequest('saveStaff', staffToGas(savedStaff))
+      .then(() => showSyncToast('保存完了', 'ok', 2000))
+      .catch(err => {
+        showGasError('スタッフ保存エラー: ' + err.message);
+        showAlert('alert-staff', '⚠️ GASへの同期に失敗しました。ページを再読み込みするとデータが元に戻ります。\nエラー: ' + err.message, 'error', 0);
+      });
+  }
 }
 
 function deleteStaff(id) {
