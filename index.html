@@ -1217,6 +1217,34 @@
     .specific-date-item .sdi-type { color: var(--rose); font-weight: 700; min-width: 50px; }
     .specific-date-item .sdi-time { color: var(--text-light); font-size: 0.78rem; }
     .specific-date-item .sdi-del  { margin-left: auto; }
+    .weekday-time-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .weekday-time-item {
+      border: 1.5px solid var(--beige-dark);
+      border-radius: var(--radius-sm);
+      padding: 7px;
+      font-size: 0.78rem;
+    }
+    .weekday-time-item label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+    .weekday-time-item .time-pair {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .weekday-time-item input[type=time] {
+      padding: 6px 7px;
+      font-size: 0.78rem;
+    }
 
     /* Constraint list */
     .constraint-item {
@@ -3761,6 +3789,8 @@ function buildShiftDays(year, month) {
     .filter(c => c.type === 'prefer_day_off')
     .flatMap(c => { try { return parseJsonSafe(c.params, {}).daysOfWeek || []; } catch { return []; } });
 
+  const warnings = [];
+
   /* ── Assign staff ── */
   const fullTimeRules = {};
   for (const [staffIdx, staff] of staffList.entries()) {
@@ -3768,6 +3798,9 @@ function buildShiftDays(year, month) {
     const preferDows   = parseJsonSafe(req.preferDaysOfWeek, []);
     const offDows      = parseJsonSafe(req.offDaysOfWeek,    []);
     const specDates    = parseJsonSafe(req.specificDates,    []);
+    const weekdayTimes = parseJsonSafe(req.weekdayTimePrefs, {});
+    const targetMinDays= Number(req.targetDaysMin) || null;
+    const targetMaxDays= Number(req.targetDaysMax) || null;
     const isMiura      = !!(miuraStaff && staff.id === miuraStaff.id);
 
     // Map specific date overrides: date → { type, start?, end? }
@@ -3777,6 +3810,8 @@ function buildShiftDays(year, month) {
     const assignPattern = (day) => {
       const ov = dateOverride[day.ymd];
       if (ov && ov.type === 'custom') return { pattern: 'カスタム', customStart: ov.start, customEnd: ov.end };
+      const wt = weekdayTimes[String(day.dow)];
+      if (wt && wt.start && wt.end) return { pattern: 'カスタム', customStart: wt.start, customEnd: wt.end };
       if (isMiura) return { pattern: day.isBusyDay ? '三浦休日' : '三浦平日' };
       return { pattern: '遅番' }; // default; weekends balanced later
     };
@@ -3865,15 +3900,33 @@ function buildShiftDays(year, month) {
         return true;
       });
 
+      const requestedTargetPerWeek = targetMaxDays || ((staff.weekDays > 0) ? Number(staff.weekDays) : null);
+
       if (preferDows.length > 0) {
-        for (const day of candidateDays) {
-          if (!preferDows.includes(day.dow)) continue;
-          const { pattern, customStart, customEnd } = assignPattern(day);
-          day.staffIds.push(staff.id);
-          day.patterns[staff.id] = { pattern, customStart, customEnd };
+        const preferredDays = candidateDays.filter(day => preferDows.includes(day.dow));
+        if (requestedTargetPerWeek) {
+          const weeks = groupByCalendarWeeks(preferredDays);
+          for (const week of weeks) {
+            const n = Math.min(requestedTargetPerWeek, week.length);
+            if (targetMinDays && week.length < targetMinDays) {
+              warnings.push({ date: week[0]?.ymd || monthKey, msg: `⚠️ ${staff.name} の希望曜日が週${targetMinDays}日に満たない週があります` });
+            }
+            const sorted = week.slice().sort((a, b) => a.staffIds.length - b.staffIds.length || a.ymd.localeCompare(b.ymd));
+            for (let i = 0; i < n; i++) {
+              const { pattern, customStart, customEnd } = assignPattern(sorted[i]);
+              sorted[i].staffIds.push(staff.id);
+              sorted[i].patterns[staff.id] = { pattern, customStart, customEnd };
+            }
+          }
+        } else {
+          for (const day of preferredDays) {
+            const { pattern, customStart, customEnd } = assignPattern(day);
+            day.staffIds.push(staff.id);
+            day.patterns[staff.id] = { pattern, customStart, customEnd };
+          }
         }
       } else {
-        const targetPerWeek = (staff.weekDays > 0) ? Number(staff.weekDays) : null;
+        const targetPerWeek = requestedTargetPerWeek;
         if (!targetPerWeek) {
           for (const day of candidateDays) {
             const { pattern, customStart, customEnd } = assignPattern(day);
@@ -3953,7 +4006,6 @@ function buildShiftDays(year, month) {
   }
 
   /* ── Apply soft constraints ── */
-  const warnings = [];
 
   // not_together: remove one of the pair when both assigned same day
   for (const c of constraints.filter(c2 => c2.type === 'not_together')) {
@@ -4482,6 +4534,9 @@ function renderShiftRequestForm() {
     const prefer  = parseJsonSafe(req.preferDaysOfWeek, []);
     const off     = parseJsonSafe(req.offDaysOfWeek,    []);
     const specs   = parseJsonSafe(req.specificDates,    []);
+    const weekdayTimes = parseJsonSafe(req.weekdayTimePrefs, {});
+    const targetMin = req.targetDaysMin || '';
+    const targetMax = req.targetDaysMax || '';
     const sidJs   = JSON.stringify(staff.id).replace(/"/g, '&quot;');
 
     const specsHtml = specs.length
@@ -4498,11 +4553,35 @@ function renderShiftRequestForm() {
     return `<div class="shift-request-card" data-staff-id="${escHtml(staff.id)}">
       <div class="shift-request-card-title">${escHtml(staff.name)}</div>
 
+      <div class="req-section-title">週の希望日数</div>
+      <div class="flex gap-2 flex-wrap" style="align-items:center;">
+        <input type="number" class="form-control target-days-min" min="0" max="7" value="${escHtml(targetMin)}" placeholder="最小" style="width:82px;">
+        <span class="text-sm text-muted">〜</span>
+        <input type="number" class="form-control target-days-max" min="0" max="7" value="${escHtml(targetMax)}" placeholder="最大" style="width:82px;">
+        <span class="text-sm text-muted">例: 2〜3日</span>
+      </div>
+
       <div class="req-section-title">出勤希望曜日</div>
       <div class="prefer-dows">${dowCheckGrid(`prefer-dow-${staff.id}`, prefer)}</div>
 
       <div class="req-section-title">休み希望曜日</div>
       <div class="off-dows">${dowCheckGrid(`off-dow-${staff.id}`, off)}</div>
+
+      <div class="req-section-title">曜日ごとの時短希望</div>
+      <div class="weekday-time-grid">
+        ${DOW_NAMES.map((n, i) => {
+          const wt = weekdayTimes[String(i)] || {};
+          const checked = wt.start && wt.end ? ' checked' : '';
+          return `<div class="weekday-time-item">
+            <label><input type="checkbox" class="weekday-time-enabled" data-dow="${i}"${checked}>${n}</label>
+            <div class="time-pair">
+              <input type="time" class="form-control weekday-time-start" value="${escHtml(wt.start || '17:00')}">
+              <span>〜</span>
+              <input type="time" class="form-control weekday-time-end" value="${escHtml(wt.end || '21:00')}">
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
 
       <div class="req-section-title">特定日の個別指定</div>
       <div class="specific-date-list">${specsHtml}</div>
@@ -4581,6 +4660,14 @@ function saveShiftRequestForm() {
     const staffId = card.dataset.staffId;
     const preferDows = [...card.querySelectorAll('.prefer-dows input[type="checkbox"]:checked')].map(el => Number(el.value));
     const offDows    = [...card.querySelectorAll('.off-dows input[type="checkbox"]:checked')].map(el => Number(el.value));
+    const weekdayTimePrefs = {};
+    for (const checkbox of card.querySelectorAll('.weekday-time-enabled:checked')) {
+      const item = checkbox.closest('.weekday-time-item');
+      weekdayTimePrefs[checkbox.dataset.dow] = {
+        start: item.querySelector('.weekday-time-start').value,
+        end:   item.querySelector('.weekday-time-end').value,
+      };
+    }
     const existing = reqs[month][staffId] || {};
     const id = existing.id || `req_${staffId}_${month}`;
     const record = {
@@ -4588,6 +4675,9 @@ function saveShiftRequestForm() {
       preferDaysOfWeek: preferDows,
       offDaysOfWeek:    offDows,
       specificDates:    parseJsonSafe(existing.specificDates, []),
+      targetDaysMin:    Number(card.querySelector('.target-days-min').value) || '',
+      targetDaysMax:    Number(card.querySelector('.target-days-max').value) || '',
+      weekdayTimePrefs,
     };
     reqs[month][staffId] = record;
     rows.push({
@@ -4597,6 +4687,9 @@ function saveShiftRequestForm() {
       preferDaysOfWeek: JSON.stringify(preferDows),
       offDaysOfWeek:    JSON.stringify(offDows),
       specificDates:    JSON.stringify(record.specificDates),
+      targetDaysMin:    record.targetDaysMin,
+      targetDaysMax:    record.targetDaysMax,
+      weekdayTimePrefs: JSON.stringify(weekdayTimePrefs),
     });
   }
   saveShiftRequests(reqs);
@@ -5188,8 +5281,10 @@ function parseShiftRows(rows) {
 
 /**
  * Parse シフト希望 rows:
- * { 'YYYY-MM': { [staffId]: { id, preferDaysOfWeek, offDaysOfWeek, specificDates } } }
- * Column layout: id, staffId, yearMonth, preferDaysOfWeek(JSON), offDaysOfWeek(JSON), specificDates(JSON)
+ * { 'YYYY-MM': { [staffId]: { id, preferDaysOfWeek, offDaysOfWeek, specificDates, targetDaysMin, targetDaysMax, weekdayTimePrefs } } }
+ * Column layout:
+ * id, staffId, yearMonth, preferDaysOfWeek(JSON), offDaysOfWeek(JSON), specificDates(JSON),
+ * targetDaysMin, targetDaysMax, weekdayTimePrefs(JSON)
  */
 function parseShiftRequestRows(rows) {
   const result = {};
@@ -5204,6 +5299,9 @@ function parseShiftRequestRows(rows) {
       preferDaysOfWeek: parseJsonSafe(r[3], []),
       offDaysOfWeek:    parseJsonSafe(r[4], []),
       specificDates:    parseJsonSafe(r[5], []),
+      targetDaysMin:    r[6] ? Number(r[6]) : '',
+      targetDaysMax:    r[7] ? Number(r[7]) : '',
+      weekdayTimePrefs: parseJsonSafe(r[8], {}),
     };
   }
   return result;
