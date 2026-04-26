@@ -1323,6 +1323,86 @@
       margin-top: 3px;
       padding: 8px 9px;
     }
+
+    /* ============================================================
+       SHIFT SHARE VIEW (スタッフ共有ビュー)
+    ============================================================ */
+    body.share-mode header,
+    body.share-mode nav,
+    body.share-mode .main { display: none; }
+
+    #share-view {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    .share-header {
+      text-align: center;
+      padding: 16px 0 10px;
+    }
+    .share-header h2 {
+      font-size: 1.3rem;
+      color: var(--rose-dark, #b44);
+      margin: 0 0 4px;
+    }
+    .share-header .share-sub {
+      font-size: 0.85rem;
+      color: #888;
+    }
+    .share-filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 10px 0 14px;
+      justify-content: center;
+    }
+    .share-filter-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid #ddd;
+      background: #fff;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .share-filter-btn.active {
+      background: var(--rose, #e57373);
+      border-color: var(--rose, #e57373);
+      color: #fff;
+      font-weight: 600;
+    }
+    .share-day-list { list-style: none; padding: 0; margin: 0; }
+    .share-day-item {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+    .share-day-header {
+      background: #f8f8f8;
+      padding: 8px 14px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .share-day-header.holiday  { color: #e53935; }
+    .share-day-header.saturday { color: #1565c0; }
+    .share-day-staff {
+      padding: 8px 14px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .share-staff-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+    .share-staff-name { font-weight: 600; min-width: 80px; }
+    .share-staff-time { color: #555; font-size: 0.85rem; }
+    .share-empty { text-align: center; color: #aaa; padding: 40px 0; font-size: 0.95rem; }
   </style>
 </head>
 <body>
@@ -2226,13 +2306,20 @@ function isJapaneseHoliday(ymd) {
    Application init
 ============================================================ */
 async function initApp() {
+  // Share view mode — intercept before admin UI renders
+  const _sp = new URLSearchParams(location.search);
+  if (_sp.get('view') === 'shift-share') {
+    await renderShiftShareView(_sp.get('month') || toYM(new Date()));
+    return;
+  }
+
   // Set default month filters before any render
   const ym = toYM(new Date());
   document.getElementById('att-month-filter').value   = ym;
   document.getElementById('payslip-month-sel').value  = ym;
   document.getElementById('analysis-month-sel').value = ym;
   const nextM = new Date();
-  nextM.setMonth(nextM.getMonth() + 1);
+  nextM.setMonth(nextM.getMonth() + 2);
   document.getElementById('shift-month-sel').value = toYM(nextM);
 
   startClock();
@@ -4468,6 +4555,7 @@ function renderShiftTab() {
   if (isConfirmed) {
     actionsDiv.innerHTML = `
       <button class="btn btn-secondary btn-sm" onclick="unconfirmShift()">✏️ 確定を解除して編集</button>
+      <button class="btn btn-outline btn-sm"   onclick="copyShiftShareUrl()">🔗 共有URLをコピー</button>
       <button class="btn btn-danger btn-sm"    onclick="clearShift()">🗑 削除</button>`;
   } else {
     actionsDiv.innerHTML = `
@@ -4491,6 +4579,124 @@ function renderShiftTab() {
   } else {
     legendCard.style.display = 'none';
   }
+}
+
+/* ============================================================
+   SHIFT SHARE VIEW (確定シフト共有・スタッフ向け)
+============================================================ */
+async function renderShiftShareView(month) {
+  document.body.classList.add('share-mode');
+  const div = document.createElement('div');
+  div.id = 'share-view';
+  document.body.appendChild(div);
+
+  div.innerHTML = '<div class="share-header"><h2>💅 シフト表</h2><div class="share-sub">読み込み中...</div></div>';
+
+  try {
+    await fetchAllFromGas();
+  } catch (e) {
+    div.innerHTML = '<div class="share-empty">データの取得に失敗しました</div>';
+    return;
+  }
+
+  const shifts = loadShifts();
+  const md = shifts[month];
+  const [yr, mo] = month.split('-').map(Number);
+
+  if (!md || !md.isConfirmed) {
+    div.innerHTML = `<div class="share-header"><h2>💅 シフト表</h2></div>
+      <div class="share-empty">${yr}年${mo}月の確定シフトはまだありません</div>`;
+    return;
+  }
+
+  const staffList = loadStaff().filter(s => (s.status || '在籍中') === '在籍中');
+  const days = md.days || {};
+  const patterns = md.patterns || {};
+  const sortedDates = Object.keys(days).sort();
+
+  await ensureHolidaysForMonth(month);
+  const holidays = (_holidayCache[yr] || {});
+  const DOW = ['日','月','火','水','木','金','土'];
+
+  function getTimeLabel(staffId, ymd) {
+    const pat = (patterns[ymd] || {})[staffId];
+    if (!pat) return '';
+    const name = pat.pattern || '';
+    if (name === 'カスタム') return `${pat.customStart || ''}〜${pat.customEnd || ''}`;
+    const info = SHIFT_PATTERNS[name];
+    return info ? `${info.start}〜${info.end}` : name;
+  }
+
+  let selectedStaff = null;
+
+  function renderDayList() {
+    let html = '<ul class="share-day-list">';
+    let hasAny = false;
+    for (const ymd of sortedDates) {
+      const staffIds = (days[ymd] || []).filter(id => !selectedStaff || id === selectedStaff);
+      if (staffIds.length === 0) continue;
+      hasAny = true;
+
+      const d = new Date(ymd + 'T00:00:00');
+      const dow = d.getDay();
+      const isHoliday = !!holidays[ymd];
+      let dayClass = '';
+      if (isHoliday || dow === 0) dayClass = 'holiday';
+      else if (dow === 6) dayClass = 'saturday';
+
+      const holidayName = isHoliday ? ` (${holidays[ymd]})` : '';
+      const dayLabel = `${parseInt(ymd.slice(5, 7))}/${parseInt(ymd.slice(8))}（${DOW[dow]}）${holidayName}`;
+
+      const staffRows = staffIds.map(sid => {
+        const staff = staffList.find(s => s.id === sid);
+        const time = getTimeLabel(sid, ymd);
+        return `<div class="share-staff-row">
+          <span class="share-staff-name">${escHtml(staff ? staff.name : sid)}</span>
+          <span class="share-staff-time">${time ? escHtml(time) : ''}</span>
+        </div>`;
+      }).join('');
+
+      html += `<li class="share-day-item">
+        <div class="share-day-header ${dayClass}">${dayLabel}</div>
+        <div class="share-day-staff">${staffRows}</div>
+      </li>`;
+    }
+    if (!hasAny) html += '<div class="share-empty">該当する出勤日がありません</div>';
+    html += '</ul>';
+    return html;
+  }
+
+  function renderView() {
+    const filterBtns = [
+      `<button class="share-filter-btn${selectedStaff === null ? ' active' : ''}" onclick="__shareFilter(null)">全員</button>`,
+      ...staffList.map(s =>
+        `<button class="share-filter-btn${selectedStaff === s.id ? ' active' : ''}" onclick="__shareFilter('${escHtml(s.id)}')">${escHtml(s.name)}</button>`)
+    ].join('');
+
+    div.innerHTML = `<div class="share-header">
+      <h2>💅 ${yr}年${mo}月 シフト表</h2>
+      <div class="share-sub">確定済み</div>
+    </div>
+    <div class="share-filter-row">${filterBtns}</div>
+    ${renderDayList()}`;
+  }
+
+  window.__shareFilter = function(staffId) {
+    selectedStaff = staffId;
+    renderView();
+  };
+
+  renderView();
+}
+
+function copyShiftShareUrl() {
+  const month = document.getElementById('shift-month-sel').value;
+  const url = `${location.origin}${location.pathname}?view=shift-share&month=${month}`;
+  navigator.clipboard.writeText(url).then(() => {
+    showSyncToast('共有URLをコピーしました', 'ok', 2000);
+  }).catch(() => {
+    prompt('以下のURLをコピーしてください', url);
+  });
 }
 
 /* ============================================================
