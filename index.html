@@ -1333,7 +1333,7 @@
     body.share-mode .main { display: none; }
 
     #share-view {
-      max-width: 480px;
+      max-width: 980px;
       margin: 0 auto;
       padding: 16px;
     }
@@ -1356,6 +1356,49 @@
       gap: 6px;
       margin: 10px 0 14px;
       justify-content: center;
+    }
+    .share-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+      margin: 8px 0 12px;
+    }
+    .share-view-switch {
+      display: inline-flex;
+      gap: 4px;
+      padding: 4px;
+      background: #fff;
+      border: 1.5px solid #f2d5dc;
+      border-radius: 999px;
+    }
+    .share-mode-btn,
+    .share-week-btn {
+      border: none;
+      background: transparent;
+      color: #b65c78;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .share-mode-btn.active {
+      background: var(--rose, #e57373);
+      color: #fff;
+    }
+    .share-week-nav {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      color: #8d6670;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .share-week-btn {
+      border: 1.5px solid #f2d5dc;
+      background: #fff;
     }
     .share-filter-btn {
       padding: 6px 14px;
@@ -1404,6 +1447,83 @@
     .share-staff-name { font-weight: 600; min-width: 80px; }
     .share-staff-time { color: #555; font-size: 0.85rem; }
     .share-empty { text-align: center; color: #aaa; padding: 40px 0; font-size: 0.95rem; }
+    .share-month-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .share-cal-head {
+      text-align: center;
+      color: #b65c78;
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 6px 0;
+    }
+    .share-cal-head.sun { color: #e53935; }
+    .share-cal-head.sat { color: #1565c0; }
+    .share-cal-empty,
+    .share-cal-day {
+      min-height: 112px;
+      border-radius: 10px;
+    }
+    .share-cal-day {
+      background: #fff;
+      border: 1px solid #f2d5dc;
+      padding: 7px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .share-cal-day.no-shift { background: #fffafa; opacity: 0.72; }
+    .share-cal-date {
+      font-weight: 800;
+      font-size: 0.82rem;
+      margin-bottom: 5px;
+      color: #8d6670;
+    }
+    .share-cal-date.holiday { color: #e53935; }
+    .share-cal-date.saturday { color: #1565c0; }
+    .share-cal-staff {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .share-cal-staff .share-staff-row {
+      display: block;
+      background: #fff5f8;
+      border-radius: 7px;
+      padding: 4px 6px;
+      font-size: 0.76rem;
+      line-height: 1.25;
+    }
+    .share-cal-staff .share-staff-name,
+    .share-cal-staff .share-staff-time {
+      display: block;
+      min-width: 0;
+    }
+    .share-week-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .share-week-card {
+      background: #fff;
+      border: 1px solid #f2d5dc;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.06);
+    }
+    .share-week-card.no-shift { opacity: 0.72; }
+    .share-week-card .share-day-header { border-bottom: 1px solid #f7e3e8; }
+    @media (max-width: 720px) {
+      #share-view { padding: 10px; }
+      .share-header h2 { font-size: 1.12rem; }
+      .share-month-grid { gap: 4px; }
+      .share-cal-day { min-height: 84px; padding: 5px; }
+      .share-cal-staff .share-staff-row { font-size: 0.68rem; padding: 3px 4px; }
+      .share-cal-staff .share-staff-time { display: none; }
+      .share-week-grid { grid-template-columns: 1fr; }
+      .share-filter-row { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+      .share-filter-btn { flex: 0 0 auto; }
+    }
   </style>
 </head>
 <body>
@@ -4617,8 +4737,6 @@ async function renderShiftShareView(month) {
   const staffList = loadStaff().filter(s => (s.status || '在籍中') === '在籍中');
   const days = md.days || {};
   const patterns = md.patterns || {};
-  const sortedDates = Object.keys(days).sort();
-
   await ensureHolidaysForMonth(month);
   const holidays = (_holidayCache[yr] || {});
   const DOW = ['日','月','火','水','木','金','土'];
@@ -4633,61 +4751,129 @@ async function renderShiftShareView(month) {
   }
 
   let selectedStaff = null;
+  let shareViewMode = window.innerWidth <= 720 ? 'week' : 'month';
+  let weekStart = getWeekStart(new Date(yr, mo - 1, 1));
 
-  function renderDayList() {
-    let html = '<ul class="share-day-list">';
-    let hasAny = false;
-    for (const ymd of sortedDates) {
-      const staffIds = (days[ymd] || []).filter(id => !selectedStaff || id === selectedStaff);
-      if (staffIds.length === 0) continue;
-      hasAny = true;
+  function addDays(base, n) {
+    const d = new Date(base);
+    d.setDate(d.getDate() + n);
+    return d;
+  }
 
-      const d = new Date(ymd + 'T00:00:00');
-      const dow = d.getDay();
-      const isHoliday = !!holidays[ymd];
-      let dayClass = '';
-      if (isHoliday || dow === 0) dayClass = 'holiday';
-      else if (dow === 6) dayClass = 'saturday';
+  function getWeekStart(date) {
+    const d = new Date(date);
+    const dow = d.getDay();
+    d.setDate(d.getDate() - dow);
+    return d;
+  }
 
-      const holidayName = isHoliday ? ` (${holidays[ymd]})` : '';
-      const dayLabel = `${parseInt(ymd.slice(5, 7))}/${parseInt(ymd.slice(8))}（${DOW[dow]}）${holidayName}`;
+  function getDateInfo(ymd) {
+    const d = new Date(ymd + 'T00:00:00');
+    const dow = d.getDay();
+    const isHoliday = !!holidays[ymd];
+    let dayClass = '';
+    if (isHoliday || dow === 0) dayClass = 'holiday';
+    else if (dow === 6) dayClass = 'saturday';
+    return { d, dow, isHoliday, dayClass };
+  }
 
-      const staffRows = staffIds.map(sid => {
-        const staff = staffList.find(s => s.id === sid);
-        const time = getTimeLabel(sid, ymd);
-        return `<div class="share-staff-row">
-          <span class="share-staff-name">${escHtml(staff ? staff.name : sid)}</span>
-          <span class="share-staff-time">${time ? escHtml(time) : ''}</span>
-        </div>`;
-      }).join('');
+  function getStaffRows(ymd, compact = false) {
+    const staffIds = (days[ymd] || []).filter(id => !selectedStaff || id === selectedStaff);
+    if (staffIds.length === 0) return '';
+    return staffIds.map(sid => {
+      const staff = staffList.find(s => s.id === sid);
+      const time = getTimeLabel(sid, ymd);
+      const timeHtml = time ? `<span class="share-staff-time">${escHtml(time)}</span>` : '';
+      return `<div class="share-staff-row">
+        <span class="share-staff-name">${escHtml(staff ? staff.name : sid)}</span>
+        ${compact ? timeHtml : timeHtml}
+      </div>`;
+    }).join('');
+  }
 
-      html += `<li class="share-day-item">
-        <div class="share-day-header ${dayClass}">${dayLabel}</div>
-        <div class="share-day-staff">${staffRows}</div>
-      </li>`;
+  function renderMonthCalendar() {
+    let html = '<div class="share-month-grid">';
+    html += DOW.map((label, i) => `<div class="share-cal-head${i === 0 ? ' sun' : i === 6 ? ' sat' : ''}">${label}</div>`).join('');
+
+    const firstDow = new Date(yr, mo - 1, 1).getDay();
+    for (let i = 0; i < firstDow; i++) html += '<div class="share-cal-empty"></div>';
+
+    const lastDay = new Date(yr, mo, 0).getDate();
+    for (let day = 1; day <= lastDay; day++) {
+      const ymd = toYMD(new Date(yr, mo - 1, day));
+      const { dayClass } = getDateInfo(ymd);
+      const staffRows = getStaffRows(ymd, true);
+      const holidayName = holidays[ymd] ? `<span> ${escHtml(holidays[ymd])}</span>` : '';
+      html += `<div class="share-cal-day${staffRows ? '' : ' no-shift'}">
+        <div class="share-cal-date ${dayClass}">${day}${holidayName}</div>
+        <div class="share-cal-staff">${staffRows || '<span class="text-muted">休</span>'}</div>
+      </div>`;
     }
-    if (!hasAny) html += '<div class="share-empty">該当する出勤日がありません</div>';
-    html += '</ul>';
+
+    html += '</div>';
     return html;
   }
 
+  function renderWeekCalendar() {
+    const weekEnd = addDays(weekStart, 6);
+    const weekLabel = `${weekStart.getMonth() + 1}/${weekStart.getDate()}〜${weekEnd.getMonth() + 1}/${weekEnd.getDate()}`;
+    let cards = '';
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(weekStart, i);
+      const ymd = toYMD(d);
+      const { dow, dayClass } = getDateInfo(ymd);
+      const staffRows = getStaffRows(ymd);
+      const holidayName = holidays[ymd] ? ` (${holidays[ymd]})` : '';
+      const outMonth = d.getMonth() !== mo - 1 ? ' no-shift' : '';
+      cards += `<div class="share-week-card${outMonth}">
+        <div class="share-day-header ${dayClass}">${d.getMonth() + 1}/${d.getDate()}（${DOW[dow]}）${escHtml(holidayName)}</div>
+        <div class="share-day-staff">${staffRows || '<span class="text-muted">休</span>'}</div>
+      </div>`;
+    }
+    return `<div class="share-week-nav">
+      <button class="share-week-btn" onclick="__shareWeekMove(-1)">前週</button>
+      <span>${weekLabel}</span>
+      <button class="share-week-btn" onclick="__shareWeekMove(1)">次週</button>
+    </div>
+    <div class="share-week-grid">${cards}</div>`;
+  }
+
+  function renderShareBody() {
+    return shareViewMode === 'month' ? renderMonthCalendar() : renderWeekCalendar();
+  }
+
   function renderView() {
+    const staffArg = s => JSON.stringify(s.id).replace(/"/g, '&quot;');
     const filterBtns = [
       `<button class="share-filter-btn${selectedStaff === null ? ' active' : ''}" onclick="__shareFilter(null)">全員</button>`,
       ...staffList.map(s =>
-        `<button class="share-filter-btn${selectedStaff === s.id ? ' active' : ''}" onclick="__shareFilter('${escHtml(s.id)}')">${escHtml(s.name)}</button>`)
+        `<button class="share-filter-btn${selectedStaff === s.id ? ' active' : ''}" onclick="__shareFilter(${staffArg(s)})">${escHtml(s.name)}</button>`)
     ].join('');
 
     div.innerHTML = `<div class="share-header">
       <h2>💅 ${yr}年${mo}月 シフト表</h2>
       <div class="share-sub">確定済み</div>
     </div>
+    <div class="share-toolbar">
+      <div class="share-view-switch">
+        <button class="share-mode-btn${shareViewMode === 'week' ? ' active' : ''}" onclick="__shareMode('week')">週</button>
+        <button class="share-mode-btn${shareViewMode === 'month' ? ' active' : ''}" onclick="__shareMode('month')">月</button>
+      </div>
+    </div>
     <div class="share-filter-row">${filterBtns}</div>
-    ${renderDayList()}`;
+    ${renderShareBody()}`;
   }
 
   window.__shareFilter = function(staffId) {
     selectedStaff = staffId;
+    renderView();
+  };
+  window.__shareMode = function(mode) {
+    shareViewMode = mode;
+    renderView();
+  };
+  window.__shareWeekMove = function(delta) {
+    weekStart = addDays(weekStart, delta * 7);
     renderView();
   };
 
