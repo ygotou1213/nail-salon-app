@@ -252,11 +252,11 @@ function normalizeShiftRequestRow(r) {
   return [
     r[0] || '', r[1] || '', r[2] || '',
     r[3] || '[]', r[4] || '[]', r[5] || '[]',
-    r[6] || '', r[7] || '', r[8] || '{}'
+    r[6] || '', r[7] || '', r[8] || '{}', r[9] || '[]'
   ];
 }
 
-// Columns: id, staffId, yearMonth, preferDaysOfWeek(JSON), offDaysOfWeek(JSON), specificDates(JSON), targetDaysMin, targetDaysMax, weekdayTimePrefs(JSON)
+// Columns: id, staffId, yearMonth, preferDaysOfWeek(JSON), offDaysOfWeek(JSON), specificDates(JSON), targetDaysMin(legacy), targetDaysMax(legacy), weekdayTimePrefs(JSON), choiceDateGroups(JSON)
 function saveShiftRequest(data) {
   const sheet = getSheet(SHEET_NAME_SHIFT_REQ);
   const lastRow = sheet.getLastRow();
@@ -269,7 +269,8 @@ function saveShiftRequest(data) {
     data.specificDates    || '[]',
     data.targetDaysMin    || '',
     data.targetDaysMax    || '',
-    data.weekdayTimePrefs || '{}'
+    data.weekdayTimePrefs || '{}',
+    data.choiceDateGroups || '[]'
   ];
   if (idx >= 0) {
     sheet.getRange(idx + 1, 1, 1, row.length).setValues([row]);
@@ -294,7 +295,7 @@ function saveBulkShiftRequests(data) {
       existing = existing.filter(r => String(r[2] || '') !== replaceMonth);
       sheet.clearContents();
       if (existing.length > 0) {
-        sheet.getRange(1, 1, existing.length, 9).setValues(existing.map(normalizeShiftRequestRow));
+        sheet.getRange(1, 1, existing.length, 10).setValues(existing.map(normalizeShiftRequestRow));
       }
     }
 
@@ -307,7 +308,8 @@ function saveBulkShiftRequests(data) {
         r.specificDates    || '[]',
         r.targetDaysMin    || '',
         r.targetDaysMax    || '',
-        r.weekdayTimePrefs || '{}'
+        r.weekdayTimePrefs || '{}',
+        r.choiceDateGroups || '[]'
       ];
       if (idx >= 0) {
         sheet.getRange(idx + 1, 1, 1, row.length).setValues([row]);

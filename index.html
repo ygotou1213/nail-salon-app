@@ -1217,6 +1217,18 @@
     .specific-date-item .sdi-type { color: var(--rose); font-weight: 700; min-width: 50px; }
     .specific-date-item .sdi-time { color: var(--text-light); font-size: 0.78rem; }
     .specific-date-item .sdi-del  { margin-left: auto; }
+    .choice-group-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+    .choice-group-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      background: var(--beige);
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+    }
+    .choice-group-item .cgi-dates { font-weight: 700; color: var(--rose); }
+    .choice-group-item .cgi-del { margin-left: auto; }
     .weekday-time-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -3808,13 +3820,27 @@ function buildShiftDays(year, month) {
     const offDows      = parseJsonSafe(req.offDaysOfWeek,    []);
     const specDates    = parseJsonSafe(req.specificDates,    []);
     const weekdayTimes = parseJsonSafe(req.weekdayTimePrefs, {});
-    const targetMinDays= Number(req.targetDaysMin) || null;
-    const targetMaxDays= Number(req.targetDaysMax) || null;
+    const choiceGroups = parseJsonSafe(req.choiceDateGroups, []);
     const isMiura      = !!(miuraStaff && staff.id === miuraStaff.id);
 
     // Map specific date overrides: date → { type, start?, end? }
     const dateOverride = {};
     for (const sd of specDates) dateOverride[sd.date] = sd;
+
+    for (const group of choiceGroups) {
+      const dates = parseJsonSafe(group.dates, group.dates || [])
+        .filter(date => date && date.startsWith(monthKey));
+      if (dates.length < 2) continue;
+      const candidates = dates
+        .map(date => allDays.find(day => day.ymd === date))
+        .filter(Boolean)
+        .sort((a, b) => a.staffIds.length - b.staffIds.length || a.ymd.localeCompare(b.ymd));
+      if (candidates.length === 0) continue;
+      const chosen = candidates[0].ymd;
+      for (const date of dates) {
+        dateOverride[date] = date === chosen ? { date, type: 'work' } : { date, type: 'off' };
+      }
+    }
 
     const assignPattern = (day) => {
       const ov = dateOverride[day.ymd];
@@ -3909,33 +3935,15 @@ function buildShiftDays(year, month) {
         return true;
       });
 
-      const requestedTargetPerWeek = targetMaxDays || ((staff.weekDays > 0) ? Number(staff.weekDays) : null);
-
       if (preferDows.length > 0) {
         const preferredDays = candidateDays.filter(day => preferDows.includes(day.dow));
-        if (requestedTargetPerWeek) {
-          const weeks = groupByCalendarWeeks(preferredDays);
-          for (const week of weeks) {
-            const n = Math.min(requestedTargetPerWeek, week.length);
-            if (targetMinDays && week.length < targetMinDays) {
-              warnings.push({ date: week[0]?.ymd || monthKey, msg: `⚠️ ${staff.name} の希望曜日が週${targetMinDays}日に満たない週があります` });
-            }
-            const sorted = week.slice().sort((a, b) => a.staffIds.length - b.staffIds.length || a.ymd.localeCompare(b.ymd));
-            for (let i = 0; i < n; i++) {
-              const { pattern, customStart, customEnd } = assignPattern(sorted[i]);
-              sorted[i].staffIds.push(staff.id);
-              sorted[i].patterns[staff.id] = { pattern, customStart, customEnd };
-            }
-          }
-        } else {
-          for (const day of preferredDays) {
-            const { pattern, customStart, customEnd } = assignPattern(day);
-            day.staffIds.push(staff.id);
-            day.patterns[staff.id] = { pattern, customStart, customEnd };
-          }
+        for (const day of preferredDays) {
+          const { pattern, customStart, customEnd } = assignPattern(day);
+          day.staffIds.push(staff.id);
+          day.patterns[staff.id] = { pattern, customStart, customEnd };
         }
       } else {
-        const targetPerWeek = requestedTargetPerWeek;
+        const targetPerWeek = (staff.weekDays > 0) ? Number(staff.weekDays) : null;
         if (!targetPerWeek) {
           for (const day of candidateDays) {
             const { pattern, customStart, customEnd } = assignPattern(day);
@@ -4544,8 +4552,7 @@ function renderShiftRequestForm() {
     const off     = parseJsonSafe(req.offDaysOfWeek,    []);
     const specs   = parseJsonSafe(req.specificDates,    []);
     const weekdayTimes = parseJsonSafe(req.weekdayTimePrefs, {});
-    const targetMin = req.targetDaysMin || '';
-    const targetMax = req.targetDaysMax || '';
+    const choiceGroups = parseJsonSafe(req.choiceDateGroups, []);
     const sidJs   = JSON.stringify(staff.id).replace(/"/g, '&quot;');
 
     const specsHtml = specs.length
@@ -4559,22 +4566,33 @@ function renderShiftRequestForm() {
         }).join('')
       : '<p class="text-sm text-muted">特定日の指定なし</p>';
 
+    const choiceGroupsHtml = choiceGroups.length
+      ? choiceGroups.map((group, idx) => {
+          const dates = parseJsonSafe(group.dates, group.dates || []);
+          return `<div class="choice-group-item">
+            <span class="cgi-dates">${dates.map(d => escHtml(d.slice(5).replace('-', '/'))).join(' or ')}</span>
+            <button class="btn btn-danger btn-sm cgi-del" onclick="removeChoiceDateGroup(${sidJs}, ${idx})">削除</button>
+          </div>`;
+        }).join('')
+      : '<p class="text-sm text-muted">候補日の指定なし</p>';
+
     return `<div class="shift-request-card" data-staff-id="${escHtml(staff.id)}">
       <div class="shift-request-card-title">${escHtml(staff.name)}</div>
-
-      <div class="req-section-title">週の希望日数</div>
-      <div class="flex gap-2 flex-wrap" style="align-items:center;">
-        <input type="number" class="form-control target-days-min" min="0" max="7" value="${escHtml(targetMin)}" placeholder="最小" style="width:82px;">
-        <span class="text-sm text-muted">〜</span>
-        <input type="number" class="form-control target-days-max" min="0" max="7" value="${escHtml(targetMax)}" placeholder="最大" style="width:82px;">
-        <span class="text-sm text-muted">例: 2〜3日</span>
-      </div>
 
       <div class="req-section-title">出勤希望曜日</div>
       <div class="prefer-dows">${dowCheckGrid(`prefer-dow-${staff.id}`, prefer)}</div>
 
       <div class="req-section-title">休み希望曜日</div>
       <div class="off-dows">${dowCheckGrid(`off-dow-${staff.id}`, off)}</div>
+
+      <div class="req-section-title">候補日から1日だけ出勤</div>
+      <div class="choice-group-list">${choiceGroupsHtml}</div>
+      <div class="flex gap-2 flex-wrap mt-2" style="align-items:center;">
+        <select class="form-control choice-date-a" style="width:110px;">${dateOptions}</select>
+        <span class="text-sm text-muted">or</span>
+        <select class="form-control choice-date-b" style="width:110px;">${dateOptions}</select>
+        <button class="btn btn-outline btn-sm" onclick="addChoiceDateGroup(${sidJs})">＋ 追加</button>
+      </div>
 
       <div class="req-section-title">曜日ごとの時短希望</div>
       <div class="weekday-time-grid">
@@ -4657,6 +4675,46 @@ function removeSpecificDate(staffId, idx) {
   renderShiftRequestForm();
 }
 
+function addChoiceDateGroup(staffId) {
+  const month = document.getElementById('shift-month-sel').value;
+  if (!staffId || !month) return;
+  const card = getShiftRequestCard(staffId);
+  if (!card) return;
+  const dates = [
+    card.querySelector('.choice-date-a').value,
+    card.querySelector('.choice-date-b').value,
+  ].filter(Boolean);
+  const uniqueDates = [...new Set(dates)].sort();
+  if (uniqueDates.length < 2) {
+    showAlert('alert-shift', '候補日は2日以上選択してください', 'error');
+    return;
+  }
+
+  const reqs = loadShiftRequests();
+  if (!reqs[month]) reqs[month] = {};
+  const req = reqs[month][staffId] || { preferDaysOfWeek: [], offDaysOfWeek: [], specificDates: [], choiceDateGroups: [] };
+  const groups = parseJsonSafe(req.choiceDateGroups, []);
+  groups.push({ dates: uniqueDates });
+  req.choiceDateGroups = groups;
+  reqs[month][staffId] = req;
+  saveShiftRequests(reqs);
+  renderShiftRequestForm();
+}
+
+function removeChoiceDateGroup(staffId, idx) {
+  const month = document.getElementById('shift-month-sel').value;
+  if (!staffId || !month) return;
+  const reqs = loadShiftRequests();
+  const req = (reqs[month] || {})[staffId];
+  if (!req) return;
+  const groups = parseJsonSafe(req.choiceDateGroups, []);
+  groups.splice(idx, 1);
+  req.choiceDateGroups = groups;
+  reqs[month][staffId] = req;
+  saveShiftRequests(reqs);
+  renderShiftRequestForm();
+}
+
 /** Save the current form values to cache + GAS */
 function saveShiftRequestForm() {
   const month   = document.getElementById('shift-month-sel').value;
@@ -4684,9 +4742,8 @@ function saveShiftRequestForm() {
       preferDaysOfWeek: preferDows,
       offDaysOfWeek:    offDows,
       specificDates:    parseJsonSafe(existing.specificDates, []),
-      targetDaysMin:    Number(card.querySelector('.target-days-min').value) || '',
-      targetDaysMax:    Number(card.querySelector('.target-days-max').value) || '',
       weekdayTimePrefs,
+      choiceDateGroups: parseJsonSafe(existing.choiceDateGroups, []),
     };
     reqs[month][staffId] = record;
     rows.push({
@@ -4696,9 +4753,8 @@ function saveShiftRequestForm() {
       preferDaysOfWeek: JSON.stringify(preferDows),
       offDaysOfWeek:    JSON.stringify(offDows),
       specificDates:    JSON.stringify(record.specificDates),
-      targetDaysMin:    record.targetDaysMin,
-      targetDaysMax:    record.targetDaysMax,
       weekdayTimePrefs: JSON.stringify(weekdayTimePrefs),
+      choiceDateGroups: JSON.stringify(record.choiceDateGroups),
     });
   }
   // Sync to GAS
@@ -5288,10 +5344,10 @@ function parseShiftRows(rows) {
 
 /**
  * Parse シフト希望 rows:
- * { 'YYYY-MM': { [staffId]: { id, preferDaysOfWeek, offDaysOfWeek, specificDates, targetDaysMin, targetDaysMax, weekdayTimePrefs } } }
+ * { 'YYYY-MM': { [staffId]: { id, preferDaysOfWeek, offDaysOfWeek, specificDates, weekdayTimePrefs, choiceDateGroups } } }
  * Column layout:
  * id, staffId, yearMonth, preferDaysOfWeek(JSON), offDaysOfWeek(JSON), specificDates(JSON),
- * targetDaysMin, targetDaysMax, weekdayTimePrefs(JSON)
+ * targetDaysMin(legacy), targetDaysMax(legacy), weekdayTimePrefs(JSON), choiceDateGroups(JSON)
  */
 function parseShiftRequestRows(rows) {
   const result = {};
@@ -5306,9 +5362,8 @@ function parseShiftRequestRows(rows) {
       preferDaysOfWeek: parseJsonSafe(r[3], []),
       offDaysOfWeek:    parseJsonSafe(r[4], []),
       specificDates:    parseJsonSafe(r[5], []),
-      targetDaysMin:    r[6] ? Number(r[6]) : '',
-      targetDaysMax:    r[7] ? Number(r[7]) : '',
       weekdayTimePrefs: parseJsonSafe(r[8], {}),
+      choiceDateGroups: parseJsonSafe(r[9], []),
     };
   }
   return result;
