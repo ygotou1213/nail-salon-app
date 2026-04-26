@@ -4599,6 +4599,7 @@ async function renderShiftShareView(month) {
     await fetchAllFromGas();
   } catch (e) {
     div.innerHTML = '<div class="share-empty">データの取得に失敗しました</div>';
+    hideLoading();
     return;
   }
 
@@ -4609,6 +4610,7 @@ async function renderShiftShareView(month) {
   if (!md || !md.isConfirmed) {
     div.innerHTML = `<div class="share-header"><h2>💅 シフト表</h2></div>
       <div class="share-empty">${yr}年${mo}月の確定シフトはまだありません</div>`;
+    hideLoading();
     return;
   }
 
@@ -4690,6 +4692,7 @@ async function renderShiftShareView(month) {
   };
 
   renderView();
+  hideLoading();
 }
 
 function copyShiftShareUrl() {
