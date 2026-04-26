@@ -1480,6 +1480,7 @@
       grid-template-columns: repeat(7, minmax(0, 1fr));
       gap: 6px;
     }
+    .share-month-scroll { width: 100%; }
     .share-cal-head {
       text-align: center;
       color: #b65c78;
@@ -1537,25 +1538,33 @@
     @media (max-width: 720px) {
       #share-view { padding: 10px; }
       .share-header h2 { font-size: 1.12rem; }
-      .share-month-grid { gap: 4px; }
+      .share-month-scroll {
+        overflow-x: auto;
+        padding-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .share-month-grid {
+        gap: 6px;
+        min-width: 680px;
+      }
       .share-cal-day { min-height: 84px; padding: 5px; }
       .share-cal-staff .share-staff-row {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) auto;
         gap: 2px;
-        font-size: 0.66rem;
-        padding: 3px 4px;
+        font-size: 0.72rem;
+        padding: 4px 5px;
       }
       .share-cal-staff .share-staff-meta {
-        justify-content: flex-start;
+        justify-content: flex-end;
         gap: 3px;
         white-space: nowrap;
       }
       .share-cal-staff .share-staff-name { overflow-wrap: normal; }
-      .share-cal-staff .share-staff-time { font-size: 0.6rem; white-space: nowrap; }
+      .share-cal-staff .share-staff-time { font-size: 0.68rem; white-space: nowrap; }
       .share-cal-staff .share-pattern-badge {
-        min-width: 15px;
-        height: 15px;
-        font-size: 0.58rem;
+        min-width: 16px;
+        height: 16px;
+        font-size: 0.6rem;
       }
       .share-week-grid { grid-template-columns: 1fr; }
       .share-filter-row { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
@@ -4885,7 +4894,7 @@ async function renderShiftShareView(month) {
   }
 
   function renderMonthCalendar() {
-    let html = '<div class="share-month-grid">';
+    let html = '<div class="share-month-scroll"><div class="share-month-grid">';
     html += DOW.map((label, i) => `<div class="share-cal-head${i === 0 ? ' sun' : i === 6 ? ' sat' : ''}">${label}</div>`).join('');
 
     const firstDow = new Date(yr, mo - 1, 1).getDay();
@@ -4903,7 +4912,7 @@ async function renderShiftShareView(month) {
       </div>`;
     }
 
-    html += '</div>';
+    html += '</div></div>';
     return html;
   }
 
