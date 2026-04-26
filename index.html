@@ -1187,6 +1187,65 @@
       border-color: var(--rose);
       background: var(--pink-lightest);
     }
+    .weekday-availability-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+    .weekday-availability-row {
+      display: grid;
+      grid-template-columns: 30px 1fr;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 7px;
+      border: 1.5px solid var(--beige-dark);
+      border-radius: var(--radius-sm);
+      background: #fff;
+    }
+    .weekday-label {
+      font-weight: 800;
+      color: var(--text-light);
+      text-align: center;
+      font-size: 0.82rem;
+    }
+    .weekday-choice {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 4px;
+    }
+    .weekday-choice label {
+      position: relative;
+      cursor: pointer;
+    }
+    .weekday-choice input { position: absolute; opacity: 0; pointer-events: none; }
+    .weekday-choice span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 28px;
+      padding: 4px 6px;
+      border: 1.5px solid var(--beige-dark);
+      border-radius: 999px;
+      color: var(--text-light);
+      font-size: 0.72rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .weekday-choice input:checked + span {
+      color: #fff;
+      border-color: var(--rose);
+      background: var(--rose);
+    }
+    .weekday-choice input[value="available"]:checked + span {
+      color: #0d47a1;
+      border-color: #bbdefb;
+      background: #e3f2fd;
+    }
+    .weekday-choice input[value="off"]:checked + span {
+      color: #c62828;
+      border-color: #ffcdd2;
+      background: #ffebee;
+    }
     .specific-date-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
     .shift-request-grid {
       display: grid;
@@ -1245,6 +1304,10 @@
       border-radius: var(--radius-sm);
       padding: 7px;
       font-size: 0.78rem;
+    }
+    .weekday-time-item.disabled {
+      opacity: 0.45;
+      background: #fafafa;
     }
     .weekday-time-item label {
       display: flex;
@@ -4108,8 +4171,8 @@ function buildShiftDays(year, month) {
   const fullTimeRules = {};
   for (const [staffIdx, staff] of staffList.entries()) {
     const req          = reqMap[staff.id] || {};
-    const preferDows   = parseJsonSafe(req.preferDaysOfWeek, []);
-    const offDows      = parseJsonSafe(req.offDaysOfWeek,    []);
+    const availability = buildWeekdayAvailability(req);
+    const { preferDaysOfWeek: preferDows, offDaysOfWeek: offDows } = splitWeekdayAvailability(availability);
     const specDates    = parseJsonSafe(req.specificDates,    []);
     const weekdayTimes = parseJsonSafe(req.weekdayTimePrefs, {});
     const choiceGroups = parseJsonSafe(req.choiceDateGroups, []);
@@ -5021,6 +5084,59 @@ function getShiftRequestCard(staffId) {
     .find(el => el.dataset.staffId === staffId);
 }
 
+function buildWeekdayAvailability(req = {}) {
+  const saved = parseJsonSafe(req.weekdayAvailability, null);
+  const result = {};
+  if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+    for (let i = 0; i < 7; i++) {
+      const v = saved[String(i)];
+      result[String(i)] = (v === 'available' || v === 'off') ? v : 'none';
+    }
+    return result;
+  }
+
+  const prefer = parseJsonSafe(req.preferDaysOfWeek, []);
+  const off = parseJsonSafe(req.offDaysOfWeek, []);
+  for (let i = 0; i < 7; i++) {
+    // If old data has both states for the same weekday, off wins.
+    result[String(i)] = off.includes(i) ? 'off' : (prefer.includes(i) ? 'available' : 'none');
+  }
+  return result;
+}
+
+function splitWeekdayAvailability(availability) {
+  const preferDaysOfWeek = [];
+  const offDaysOfWeek = [];
+  for (let i = 0; i < 7; i++) {
+    const state = availability[String(i)] || 'none';
+    if (state === 'available') preferDaysOfWeek.push(i);
+    if (state === 'off') offDaysOfWeek.push(i);
+  }
+  return { preferDaysOfWeek, offDaysOfWeek };
+}
+
+function weekdayAvailabilityGrid(staffId, availability) {
+  const sid = escHtml(staffId);
+  const labels = [
+    { value: 'none', label: '指定なし' },
+    { value: 'available', label: '出勤可' },
+    { value: 'off', label: '休み希望' },
+  ];
+  return `<div class="weekday-availability-grid">` + DOW_NAMES.map((name, dow) => {
+    const current = availability[String(dow)] || 'none';
+    return `<div class="weekday-availability-row" data-dow="${dow}">
+      <div class="weekday-label">${name}</div>
+      <div class="weekday-choice">
+        ${labels.map(opt => `
+          <label>
+            <input type="radio" name="weekday-availability-${sid}-${dow}" value="${opt.value}"${current === opt.value ? ' checked' : ''} onchange="onWeekdayAvailabilityChange(this)">
+            <span>${opt.label}</span>
+          </label>`).join('')}
+      </div>
+    </div>`;
+  }).join('') + `</div>`;
+}
+
 /**
  * Sync the current DOM checkbox / weekday-time state into the cache.
  * Must be called before any operation that re-renders the form, so that
@@ -5033,10 +5149,15 @@ function syncShiftRequestFormToCache() {
   if (!reqs[month]) reqs[month] = {};
   for (const card of document.querySelectorAll('.shift-request-card')) {
     const staffId = card.dataset.staffId;
-    const preferDows = [...card.querySelectorAll('.prefer-dows input[type="checkbox"]:checked')].map(el => Number(el.value));
-    const offDows    = [...card.querySelectorAll('.off-dows input[type="checkbox"]:checked')].map(el => Number(el.value));
+    const weekdayAvailability = {};
+    for (let i = 0; i < 7; i++) {
+      const checked = card.querySelector(`.weekday-availability-row[data-dow="${i}"] input[type="radio"]:checked`);
+      weekdayAvailability[String(i)] = checked ? checked.value : 'none';
+    }
+    const { preferDaysOfWeek: preferDows, offDaysOfWeek: offDows } = splitWeekdayAvailability(weekdayAvailability);
     const weekdayTimePrefs = {};
     for (const checkbox of card.querySelectorAll('.weekday-time-enabled:checked')) {
+      if (weekdayAvailability[checkbox.dataset.dow] !== 'available') continue;
       const item = checkbox.closest('.weekday-time-item');
       weekdayTimePrefs[checkbox.dataset.dow] = {
         start: item.querySelector('.weekday-time-start').value,
@@ -5044,7 +5165,7 @@ function syncShiftRequestFormToCache() {
       };
     }
     const existing = reqs[month][staffId] || {};
-    reqs[month][staffId] = { ...existing, preferDaysOfWeek: preferDows, offDaysOfWeek: offDows, weekdayTimePrefs };
+    reqs[month][staffId] = { ...existing, preferDaysOfWeek: preferDows, offDaysOfWeek: offDows, weekdayTimePrefs, weekdayAvailability };
   }
   saveShiftRequests(reqs);
 }
@@ -5076,8 +5197,7 @@ function renderShiftRequestForm() {
 
   formDiv.innerHTML = `<div class="shift-request-grid">` + active.map(staff => {
     const req     = reqMap[staff.id] || { preferDaysOfWeek: [], offDaysOfWeek: [], specificDates: [] };
-    const prefer  = parseJsonSafe(req.preferDaysOfWeek, []);
-    const off     = parseJsonSafe(req.offDaysOfWeek,    []);
+    const availability = buildWeekdayAvailability(req);
     const specs   = parseJsonSafe(req.specificDates,    []);
     const weekdayTimes = parseJsonSafe(req.weekdayTimePrefs, {});
     const choiceGroups = parseJsonSafe(req.choiceDateGroups, []);
@@ -5107,27 +5227,25 @@ function renderShiftRequestForm() {
     return `<div class="shift-request-card" data-staff-id="${escHtml(staff.id)}">
       <div class="shift-request-card-title">${escHtml(staff.name)}</div>
 
-      <div class="req-section-title">出勤希望曜日</div>
-      <div class="prefer-dows">${dowCheckGrid(`prefer-dow-${staff.id}`, prefer)}</div>
+      <div class="req-section-title">曜日ごとの希望</div>
+      ${weekdayAvailabilityGrid(staff.id, availability)}
 
       <div class="req-section-title">曜日ごとの時短希望</div>
       <div class="weekday-time-grid">
         ${DOW_NAMES.map((n, i) => {
           const wt = weekdayTimes[String(i)] || {};
-          const checked = wt.start && wt.end ? ' checked' : '';
-          return `<div class="weekday-time-item">
-            <label><input type="checkbox" class="weekday-time-enabled" data-dow="${i}"${checked}>${n}</label>
+          const enabled = availability[String(i)] === 'available';
+          const checked = enabled && wt.start && wt.end ? ' checked' : '';
+          return `<div class="weekday-time-item${enabled ? '' : ' disabled'}" data-dow="${i}">
+            <label><input type="checkbox" class="weekday-time-enabled" data-dow="${i}"${checked}${enabled ? '' : ' disabled'}>${n}</label>
             <div class="time-pair">
-              <input type="time" class="form-control weekday-time-start" value="${escHtml(wt.start || '17:00')}">
+              <input type="time" class="form-control weekday-time-start" value="${escHtml(wt.start || '17:00')}"${enabled ? '' : ' disabled'}>
               <span>〜</span>
-              <input type="time" class="form-control weekday-time-end" value="${escHtml(wt.end || '21:00')}">
+              <input type="time" class="form-control weekday-time-end" value="${escHtml(wt.end || '21:00')}"${enabled ? '' : ' disabled'}>
             </div>
           </div>`;
         }).join('')}
       </div>
-
-      <div class="req-section-title">休み希望曜日</div>
-      <div class="off-dows">${dowCheckGrid(`off-dow-${staff.id}`, off)}</div>
 
       <div class="req-section-title">候補日から1日だけ出勤</div>
       <div class="choice-group-list">${choiceGroupsHtml}</div>
@@ -5162,6 +5280,21 @@ function renderShiftRequestForm() {
 function toggleCustomTime(selectEl) {
   const card = selectEl.closest('.shift-request-card');
   card.querySelector('.custom-time-fields').classList.toggle('hidden', selectEl.value !== 'custom');
+}
+
+function onWeekdayAvailabilityChange(input) {
+  const row = input.closest('.weekday-availability-row');
+  const card = input.closest('.shift-request-card');
+  if (!row || !card) return;
+  const dow = row.dataset.dow;
+  const item = card.querySelector(`.weekday-time-item[data-dow="${dow}"]`);
+  if (!item) return;
+  const enabled = input.value === 'available';
+  item.classList.toggle('disabled', !enabled);
+  for (const el of item.querySelectorAll('input')) {
+    el.disabled = !enabled;
+    if (!enabled && el.classList.contains('weekday-time-enabled')) el.checked = false;
+  }
 }
 
 function addSpecificDate(staffId) {
@@ -5257,10 +5390,15 @@ function saveShiftRequestForm() {
   const rows = [];
   for (const card of document.querySelectorAll('.shift-request-card')) {
     const staffId = card.dataset.staffId;
-    const preferDows = [...card.querySelectorAll('.prefer-dows input[type="checkbox"]:checked')].map(el => Number(el.value));
-    const offDows    = [...card.querySelectorAll('.off-dows input[type="checkbox"]:checked')].map(el => Number(el.value));
+    const weekdayAvailability = {};
+    for (let i = 0; i < 7; i++) {
+      const checked = card.querySelector(`.weekday-availability-row[data-dow="${i}"] input[type="radio"]:checked`);
+      weekdayAvailability[String(i)] = checked ? checked.value : 'none';
+    }
+    const { preferDaysOfWeek: preferDows, offDaysOfWeek: offDows } = splitWeekdayAvailability(weekdayAvailability);
     const weekdayTimePrefs = {};
     for (const checkbox of card.querySelectorAll('.weekday-time-enabled:checked')) {
+      if (weekdayAvailability[checkbox.dataset.dow] !== 'available') continue;
       const item = checkbox.closest('.weekday-time-item');
       weekdayTimePrefs[checkbox.dataset.dow] = {
         start: item.querySelector('.weekday-time-start').value,
@@ -5276,6 +5414,7 @@ function saveShiftRequestForm() {
       specificDates:    parseJsonSafe(existing.specificDates, []),
       weekdayTimePrefs,
       choiceDateGroups: parseJsonSafe(existing.choiceDateGroups, []),
+      weekdayAvailability,
     };
     reqs[month][staffId] = record;
     rows.push({
@@ -5287,6 +5426,7 @@ function saveShiftRequestForm() {
       specificDates:    JSON.stringify(record.specificDates),
       weekdayTimePrefs: JSON.stringify(weekdayTimePrefs),
       choiceDateGroups: JSON.stringify(record.choiceDateGroups),
+      weekdayAvailability: JSON.stringify(weekdayAvailability),
     });
   }
   // Sync to GAS
@@ -5888,10 +6028,10 @@ function parseShiftRows(rows) {
 
 /**
  * Parse シフト希望 rows:
- * { 'YYYY-MM': { [staffId]: { id, preferDaysOfWeek, offDaysOfWeek, specificDates, weekdayTimePrefs, choiceDateGroups } } }
+ * { 'YYYY-MM': { [staffId]: { id, preferDaysOfWeek, offDaysOfWeek, specificDates, weekdayTimePrefs, choiceDateGroups, weekdayAvailability } } }
  * Column layout:
  * id, staffId, yearMonth, preferDaysOfWeek(JSON), offDaysOfWeek(JSON), specificDates(JSON),
- * targetDaysMin(legacy), targetDaysMax(legacy), weekdayTimePrefs(JSON), choiceDateGroups(JSON)
+ * targetDaysMin(legacy), targetDaysMax(legacy), weekdayTimePrefs(JSON), choiceDateGroups(JSON), weekdayAvailability(JSON)
  */
 function parseShiftRequestRows(rows) {
   const result = {};
@@ -5916,6 +6056,7 @@ function parseShiftRequestRows(rows) {
       specificDates:    parseJsonSafe(r[5], []),
       weekdayTimePrefs: parseJsonSafe(r[8], {}),
       choiceDateGroups: parseJsonSafe(r[9], []),
+      weekdayAvailability: parseJsonSafe(r[10], null),
     };
   }
   return result;
