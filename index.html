@@ -974,6 +974,7 @@
     .cal-weekend  { background: #fafafa; }
     .cal-today    { border-color: var(--rose) !important; border-width: 2px; }
     .cal-confirmed { background: linear-gradient(160deg, #f0fff4, #fafff6); }
+    .cal-warn { border-color: #ffb300 !important; }
 
     .cal-date-num {
       font-size: 0.76rem;
@@ -1083,6 +1084,164 @@
       font-weight: 600;
     }
     .shift-summary-item span { color: var(--rose); font-weight: 800; }
+
+    /* Shift sub-tabs */
+    .shift-subtabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+      padding: 6px;
+      background: var(--beige);
+      border: 1px solid var(--beige-dark);
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+    }
+    .shift-subtab {
+      flex: 0 0 auto;
+      padding: 8px 16px;
+      border: 1.5px solid transparent;
+      border-radius: var(--radius-sm);
+      background: var(--white);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .shift-subtab:hover { color: var(--rose); border-color: var(--pink-mid); background: var(--pink-lightest); }
+    .shift-subtab.active { color: var(--rose); border-color: var(--rose); background: var(--pink-lightest); }
+
+    /* Shift pattern badge inside calendar cells */
+    .pat-badge {
+      display: inline-block;
+      font-size: 0.55rem;
+      font-weight: 800;
+      padding: 0 3px;
+      border-radius: 2px;
+      line-height: 1.5;
+      vertical-align: middle;
+      margin-left: 2px;
+      cursor: pointer;
+    }
+    .pat-badge.hayaban  { background: #e3f2fd; color: #1565c0; }
+    .pat-badge.osaban   { background: #ede7f6; color: #512da8; }
+    .pat-badge.miura    { background: #e8f5e9; color: #2e7d32; }
+    .pat-badge.custom   { background: #fff3e0; color: #e65100; }
+
+    /* Shift warnings bar */
+    .shift-warning-bar {
+      margin-top: 8px;
+      padding: 9px 13px;
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-radius: var(--radius-sm);
+      font-size: 0.79rem;
+      color: #bf6000;
+    }
+    .shift-warning-bar ul { margin: 4px 0 0 18px; padding: 0; }
+    .shift-warning-bar li { margin-bottom: 2px; }
+
+    .cal-holiday {
+      background: #fff7f8;
+      border-color: #f6b3c1;
+    }
+    .holiday-name {
+      display: inline-block;
+      margin-left: 4px;
+      font-size: 0.58rem;
+      font-weight: 800;
+      color: var(--rose);
+      vertical-align: middle;
+    }
+
+    /* Shift request form */
+    .req-section-title {
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 14px 0 6px;
+    }
+    .dow-check-grid {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .dow-check-grid label {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 4px 9px;
+      border: 1.5px solid var(--beige-dark);
+      border-radius: 50px;
+      transition: border-color 0.12s, background 0.12s;
+    }
+    .dow-check-grid input[type=checkbox]:checked + span { color: var(--rose); }
+    .dow-check-grid label:has(input:checked) {
+      border-color: var(--rose);
+      background: var(--pink-lightest);
+    }
+    .specific-date-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+    .specific-date-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      background: var(--beige);
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+    }
+    .specific-date-item .sdi-date { font-weight: 700; min-width: 100px; }
+    .specific-date-item .sdi-type { color: var(--rose); font-weight: 700; min-width: 50px; }
+    .specific-date-item .sdi-time { color: var(--text-light); font-size: 0.78rem; }
+    .specific-date-item .sdi-del  { margin-left: auto; }
+
+    /* Constraint list */
+    .constraint-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 13px;
+      background: var(--beige);
+      border-radius: var(--radius-sm);
+      margin-bottom: 7px;
+    }
+    .constraint-item .ci-body { flex: 1; min-width: 0; }
+    .constraint-item .ci-desc { font-size: 0.84rem; font-weight: 600; }
+    .constraint-item .ci-meta { font-size: 0.74rem; color: var(--text-light); margin-top: 2px; }
+    .con-type-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 1px 7px;
+      border-radius: 50px;
+      background: var(--pink-light);
+      color: var(--rose);
+      white-space: nowrap;
+    }
+    .con-priority-high   { background: #ffebee; color: #c62828; }
+    .con-priority-medium { background: #fff8e1; color: #e65100; }
+    .con-priority-low    { background: #e8f5e9; color: #2e7d32; }
+
+    /* Constraint add form */
+    .constraint-add-form {
+      border: 1.5px dashed var(--pink-mid);
+      border-radius: var(--radius-sm);
+      padding: 13px;
+      margin-top: 12px;
+    }
+    .constraint-add-form .form-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 8px;
+    }
   </style>
 </head>
 <body>
@@ -1266,32 +1425,89 @@
   <!-- ==================== SHIFT TAB ==================== -->
   <section id="tab-shift" class="section">
 
-    <!-- Controls card -->
     <div class="card">
-      <div class="card-title">📅 シフト自動提案</div>
+      <div class="card-title">📅 シフト管理</div>
 
+      <!-- Month selector shared across all sub-tabs -->
       <div class="flex items-center gap-2 flex-wrap mb-3">
+        <label class="form-label mb-0" style="white-space:nowrap;">対象月</label>
         <input type="month" class="form-control" id="shift-month-sel"
-               style="flex:0 0 auto;width:160px;" onchange="renderShiftTab()">
-        <button class="btn btn-primary btn-sm" onclick="generateShift()">✨ シフトを自動生成</button>
+               style="flex:0 0 auto;width:160px;" onchange="onShiftMonthChange()">
         <div id="shift-status-badge"></div>
+      </div>
+
+      <!-- Sub-tab nav -->
+      <div class="shift-subtabs">
+        <button class="shift-subtab active" id="stab-generate"   onclick="switchShiftSubTab('generate')">📅 シフト生成</button>
+        <button class="shift-subtab"        id="stab-request"    onclick="switchShiftSubTab('request')">🙋 シフト希望</button>
+        <button class="shift-subtab"        id="stab-constraint" onclick="switchShiftSubTab('constraint')">⚙️ ソフト制約</button>
       </div>
 
       <div id="alert-shift"></div>
 
-      <!-- Calendar area -->
-      <div id="shift-calendar-area">
-        <div class="empty-state">
-          <div class="icon">📅</div>
-          <p>対象月を選択して「シフトを自動生成」を押してください</p>
+      <!-- ── Panel: シフト生成 ── -->
+      <div id="shift-panel-generate">
+        <div class="flex gap-2 flex-wrap mb-3">
+          <button class="btn btn-primary btn-sm" onclick="generateShift()">✨ シフトを自動生成</button>
+        </div>
+        <div id="shift-calendar-area">
+          <div class="empty-state">
+            <div class="icon">📅</div>
+            <p>対象月を選択して「シフトを自動生成」を押してください</p>
+          </div>
+        </div>
+        <div id="shift-warnings-area"></div>
+        <div id="shift-actions" class="hidden mt-3 flex gap-2 flex-wrap"></div>
+      </div>
+
+      <!-- ── Panel: シフト希望 ── -->
+      <div id="shift-panel-request" class="hidden">
+        <div class="flex items-center gap-2 flex-wrap mb-3">
+          <label class="form-label mb-0" style="white-space:nowrap;">スタッフ</label>
+          <select class="form-control" id="shift-req-staff-sel"
+                  style="flex:0 0 auto;width:200px;"
+                  onchange="renderShiftRequestForm()"></select>
+        </div>
+        <div id="shift-request-form">
+          <div class="empty-state"><p>スタッフを選択してください</p></div>
+        </div>
+        <div class="mt-3">
+          <button class="btn btn-primary btn-sm" onclick="saveShiftRequestForm()">💾 このスタッフの希望を保存</button>
         </div>
       </div>
 
-      <!-- Action buttons (shown after data exists) -->
-      <div id="shift-actions" class="hidden mt-3 flex gap-2 flex-wrap"></div>
+      <!-- ── Panel: ソフト制約 ── -->
+      <div id="shift-panel-constraint" class="hidden">
+        <div id="constraint-list"></div>
+
+        <div class="constraint-add-form">
+          <div class="card-title" style="font-size:0.84rem;margin-bottom:10px;">制約を追加</div>
+          <div class="form-row">
+            <label class="form-label mb-0" style="white-space:nowrap;">種類</label>
+            <select class="form-control" id="new-constraint-type"
+                    style="width:160px;" onchange="renderConstraintParamUI()">
+              <option value="not_together">同日出勤不可</option>
+              <option value="not_alone">単独出勤不可</option>
+              <option value="prefer_day_off">定休日優先</option>
+              <option value="min_staff">最低出勤人数</option>
+            </select>
+          </div>
+          <div id="constraint-param-ui" class="mb-2"></div>
+          <div class="form-row">
+            <input type="text" class="form-control" id="new-constraint-desc"
+                   placeholder="説明（例: 網野・石出は同日不可）" style="flex:1;min-width:180px;">
+            <select class="form-control" id="new-constraint-priority" style="width:70px;">
+              <option value="high">高</option>
+              <option value="medium" selected>中</option>
+              <option value="low">低</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="addConstraint()">追加</button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Staff color legend -->
+    <!-- Staff color legend (shown below card when calendar is visible) -->
     <div class="card" id="shift-legend-card" style="display:none;">
       <div class="card-title">スタッフ凡例</div>
       <div id="shift-legend-content" class="flex gap-2 flex-wrap"></div>
@@ -1550,14 +1766,40 @@ const GAS_URL  = 'https://script.google.com/macros/s/AKfycbzaqPEJHTtxNy-OoCvyfoM
    Storage helpers
 ============================================================ */
 /* ---- In-memory cache (source of truth for rendering) ---- */
-const _cache = { staff: [], logs: [], shifts: {}, payslips: {} };
+const _cache = {
+  staff: [], logs: [], shifts: {}, payslips: {},
+  shiftRequests: {},   // { 'YYYY-MM': { [staffId]: { id, preferDaysOfWeek, offDaysOfWeek, specificDates } } }
+  softConstraints: {}, // { 'YYYY-MM': [{ id, type, params, description, priority }] }
+};
 
-function loadStaff()    { return _cache.staff.slice(); }
-function saveStaff(d)   { _cache.staff    = d; }
-function loadLogs()     { return _cache.logs.slice(); }
-function saveLogs(d)    { _cache.logs     = d; }
-function loadShifts()   { return _cache.shifts; }
-function saveShifts(d)  { _cache.shifts   = d; }
+function loadStaff()           { return _cache.staff.slice(); }
+function saveStaff(d)          { _cache.staff          = d; }
+function loadLogs()            { return _cache.logs.slice(); }
+function saveLogs(d)           { _cache.logs           = d; }
+function loadShifts()          { return _cache.shifts; }
+function saveShifts(d)         { _cache.shifts         = d; }
+function loadShiftRequests()   { return _cache.shiftRequests; }
+function saveShiftRequests(d)  { _cache.shiftRequests  = d; }
+function loadSoftConstraints() { return _cache.softConstraints; }
+function saveSoftConstraints(d){ _cache.softConstraints = d; }
+
+/* Shift patterns (fixed master) */
+const SHIFT_PATTERNS = {
+  '早番':    { start: '10:00', end: '19:00', cls: 'hayaban', label: '早' },
+  '遅番':    { start: '12:00', end: '21:00', cls: 'osaban',  label: '遅' },
+  '三浦平日': { start: '11:00', end: '15:00', cls: 'miura',   label: '平' },
+  '三浦休日': { start: '10:00', end: '17:00', cls: 'miura',   label: '休' },
+  'カスタム': { start: '',      end: '',       cls: 'custom',  label: 'C'  },
+};
+const ALL_PATTERN_NAMES = Object.keys(SHIFT_PATTERNS);
+
+const JP_HOLIDAY_API_BASE = 'https://holidays-jp.github.io/api/v1';
+let _holidayCache = {}; // { year: { 'YYYY-MM-DD': '祝日名' } }
+
+function parseJsonSafe(v, fallback) {
+  if (Array.isArray(v) || (v && typeof v === 'object')) return v;
+  try { return JSON.parse(v); } catch { return fallback; }
+}
 function loadPayslips() { return { ..._cache.payslips }; }
 function savePayslips(d){ _cache.payslips = d; }
 
@@ -1878,6 +2120,34 @@ function toDatetimeLocal(isoStr) {
 
 function pad2(n) { return String(n).padStart(2, '0'); }
 
+async function fetchJapaneseHolidays(year) {
+  if (_holidayCache[year]) return _holidayCache[year];
+  try {
+    const res = await fetch(`${JP_HOLIDAY_API_BASE}/${year}/date.json`, { cache: 'force-cache' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    _holidayCache[year] = await res.json();
+  } catch (err) {
+    console.warn('祝日データの取得に失敗しました', err);
+    _holidayCache[year] = {};
+  }
+  return _holidayCache[year];
+}
+
+async function ensureHolidaysForMonth(monthKey) {
+  if (!monthKey) return;
+  const [year] = monthKey.split('-').map(Number);
+  if (year) await fetchJapaneseHolidays(year);
+}
+
+function getJapaneseHolidayName(ymd) {
+  const year = Number(String(ymd).slice(0, 4));
+  return (_holidayCache[year] || {})[ymd] || '';
+}
+
+function isJapaneseHoliday(ymd) {
+  return !!getJapaneseHolidayName(ymd);
+}
+
 /* ============================================================
    Application init
 ============================================================ */
@@ -1904,6 +2174,8 @@ async function initApp() {
     // Render with empty cache so app is still usable
   }
   hideLoading();
+
+  await ensureHolidaysForMonth(document.getElementById('shift-month-sel').value);
 
   renderClockTab();
   renderStaffTab();
@@ -1992,6 +2264,7 @@ function switchTab(name) {
     t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.section').forEach(s =>
     s.classList.toggle('active', s.id === `tab-${name}`));
+  if (name === 'shift') onShiftMonthChange();
 }
 
 /* ============================================================
@@ -3343,7 +3616,9 @@ function importData(ev) {
         for (const [, md] of Object.entries(shifts)) {
           for (const [date, ids] of Object.entries(md.days || {})) {
             for (const sid of ids) {
-              shp.push(gasRequest('saveShift', shiftRowToGas(sid, date, md.isConfirmed)));
+              const pat = ((md.patterns || {})[date] || {})[sid];
+              const patName = (typeof pat === 'string') ? pat : ((pat && pat.pattern) ? pat.pattern : '遅番');
+              shp.push(gasRequest('saveShift', shiftRowToGas(sid, date, md.isConfirmed, patName)));
             }
           }
         }
@@ -3388,25 +3663,21 @@ function buildColorMap(staffList) {
 }
 
 /**
- * Group an array of { ymd, dow } weekday objects by calendar week.
- * Returns array of arrays, each representing Mon–Fri of one week.
+ * Group an arbitrary array of day objects { ymd } by calendar week (Mon-based).
+ * Returns array of arrays.
  */
-function groupByCalendarWeek(weekdays) {
+function groupByCalendarWeeks(days) {
   const weeks = [];
-  let curMonday = null;
-  let curWeek   = [];
-
-  for (const day of weekdays) {
+  let curMonday = null, curWeek = [];
+  for (const day of days) {
     const d   = new Date(day.ymd);
-    const dow = d.getDay();                        // 0=Sun … 6=Sat
+    const dow = d.getDay();
     const mon = new Date(d);
-    mon.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1)); // shift to Monday
+    mon.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
     const monStr = toYMD(mon);
-
     if (monStr !== curMonday) {
       if (curWeek.length) weeks.push(curWeek);
-      curWeek   = [day];
-      curMonday = monStr;
+      curWeek = [day]; curMonday = monStr;
     } else {
       curWeek.push(day);
     }
@@ -3416,57 +3687,244 @@ function groupByCalendarWeek(weekdays) {
 }
 
 /**
- * Core shift-generation algorithm.
- * Returns { 'YYYY-MM-DD': [staffId, ...], ... } for every day of the month.
+ * Core shift-generation algorithm (constraint-aware).
+ *
+ * Returns { days, patterns, warnings } where:
+ *   days:     { 'YYYY-MM-DD': [staffId, ...] }
+ *   patterns: { 'YYYY-MM-DD': { [staffId]: patternName } }
+ *   warnings: [{ date, msg }]
  *
  * Rules:
- *  - 常勤  → scheduled every weekday (Mon-Fri)
- *  - 非常勤 → weekDays days per week; each week, choose the days with the
- *             fewest staff already scheduled (balancing daily load).
+ *   常勤  → 月8日休み（週6勤務）、希望休・prefer_day_off制約を優先してrest日を決定
+ *   非常勤 → preferDaysOfWeekの範囲内で最大出勤（未設定なら全日）
+ *   三浦さん → 平日=三浦平日、土日=三浦休日 を自動選択
+ *   平日   → 遅番優先
+ *   土日   → 早番＋遅番を両方カバーするよう振り分け
  */
 function buildShiftDays(year, month) {
-  const staffList    = loadStaff().filter(s => (s.status || '在籍中') === '在籍中');
-  const daysInMonth  = new Date(year, month, 0).getDate(); // month is 1-based
+  const staffList   = loadStaff().filter(s => (s.status || '在籍中') === '在籍中');
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const monthKey    = `${year}-${String(month).padStart(2, '0')}`;
 
-  // Build day info objects for every calendar day
+  const reqMap     = loadShiftRequests()[monthKey]   || {};
+  const constraints= loadSoftConstraints()[monthKey] || [];
+
+  // Identify 三浦さん by name
+  const miuraStaff = staffList.find(s => s.name.includes('三浦'));
+
+  // Build day objects for the entire month
   const allDays = [];
   for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month - 1, d);
-    allDays.push({ ymd: toYMD(date), dow: date.getDay(), staffIds: [] });
+    const dt = new Date(year, month - 1, d);
+    const dow = dt.getDay();
+    const ymd = toYMD(dt);
+    const holidayName = getJapaneseHolidayName(ymd);
+    allDays.push({
+      ymd,
+      dow,
+      isWeekend: dow === 0 || dow === 6,
+      isHoliday: !!holidayName,
+      holidayName,
+      isBusyDay:  dow === 0 || dow === 6 || !!holidayName,
+      staffIds:  [],
+      patterns:  {}, // { [staffId]: patternName }
+    });
   }
 
-  const weekdays = allDays.filter(d => d.dow >= 1 && d.dow <= 5);
+  // prefer_day_off constraint: collect preferred rest dow values
+  const preferOffDows = constraints
+    .filter(c => c.type === 'prefer_day_off')
+    .flatMap(c => { try { return parseJsonSafe(c.params, {}).daysOfWeek || []; } catch { return []; } });
 
-  // Step 1 – assign 常勤 staff to every weekday
-  const fulltime = staffList.filter(s => s.employment === '常勤');
-  for (const s of fulltime) {
-    for (const day of weekdays) day.staffIds.push(s.id);
-  }
+  /* ── Assign staff ── */
+  for (const [staffIdx, staff] of staffList.entries()) {
+    const req          = reqMap[staff.id] || {};
+    const preferDows   = parseJsonSafe(req.preferDaysOfWeek, []);
+    const offDows      = parseJsonSafe(req.offDaysOfWeek,    []);
+    const specDates    = parseJsonSafe(req.specificDates,    []);
+    const isMiura      = !!(miuraStaff && staff.id === miuraStaff.id);
 
-  // Step 2 – assign 非常勤 staff, week by week, filling lowest-count days first
-  const parttime = staffList.filter(s => s.employment === '非常勤');
-  const weeks    = groupByCalendarWeek(weekdays);
+    // Map specific date overrides: date → { type, start?, end? }
+    const dateOverride = {};
+    for (const sd of specDates) dateOverride[sd.date] = sd;
 
-  for (const s of parttime) {
-    const targetPerWeek = Math.min(s.weekDays || 3, 5);
-    for (const week of weeks) {
-      const n = Math.min(targetPerWeek, week.length);
-      // Sort this week's days by current staff count (ascending) for even distribution
-      const sorted = week.slice().sort((a, b) => a.staffIds.length - b.staffIds.length);
-      for (let i = 0; i < n; i++) sorted[i].staffIds.push(s.id);
+    const assignPattern = (day) => {
+      const ov = dateOverride[day.ymd];
+      if (ov && ov.type === 'custom') return { pattern: 'カスタム', customStart: ov.start, customEnd: ov.end };
+      if (isMiura) return { pattern: day.isBusyDay ? '三浦休日' : '三浦平日' };
+      return { pattern: '遅番' }; // default; weekends balanced later
+    };
+
+    if (staff.employment === '常勤') {
+      // Build rest-day set targeting 8 days off per month
+      const TARGET_REST = 8;
+      const restSet = new Set();
+
+      // 1. Forced off from specific dates
+      for (const sd of specDates) {
+        if (sd.type === 'off') restSet.add(sd.date);
+      }
+      // 2. Preferred off-dow from 希望
+      for (const day of allDays) {
+        if (restSet.size >= TARGET_REST) break;
+        if (!restSet.has(day.ymd) && offDows.includes(day.dow)) restSet.add(day.ymd);
+      }
+      // 3. prefer_day_off constraint days
+      for (const day of allDays) {
+        if (restSet.size >= TARGET_REST) break;
+        if (!restSet.has(day.ymd) && preferOffDows.includes(day.dow)) restSet.add(day.ymd);
+      }
+      // 4. Auto-distribute remaining rest days evenly
+      if (restSet.size < TARGET_REST) {
+        const addDistributedRestDays = (pool, count) => {
+          if (count <= 0 || pool.length === 0) return 0;
+          const candidates = pool
+            .filter(d => !restSet.has(d.ymd))
+            .sort((a, b) => b.staffIds.length - a.staffIds.length || a.ymd.localeCompare(b.ymd));
+          const step = Math.max(1, Math.floor(candidates.length / (count + 1)));
+          let added = 0;
+          for (let i = 0; i < count; i++) {
+            const baseIdx = (i + 1) * step - 1;
+            const idx = Math.min(baseIdx + (staffIdx % step), candidates.length - 1);
+            if (candidates[idx] && !restSet.has(candidates[idx].ymd)) {
+              restSet.add(candidates[idx].ymd);
+              added++;
+            }
+          }
+          return added;
+        };
+
+        let needed = TARGET_REST - restSet.size;
+        const weekdayCandidates = allDays.filter(d => !d.isBusyDay);
+        needed -= addDistributedRestDays(weekdayCandidates, needed);
+        if (needed > 0) {
+          const busyCandidates = allDays.filter(d => d.isBusyDay);
+          addDistributedRestDays(busyCandidates, needed);
+        }
+      }
+
+      // Assign to all non-rest days
+      for (const day of allDays) {
+        const ov = dateOverride[day.ymd];
+        if (restSet.has(day.ymd)) continue;
+        if (ov && ov.type === 'off') continue;
+        const { pattern, customStart, customEnd } = assignPattern(day);
+        day.staffIds.push(staff.id);
+        day.patterns[staff.id] = { pattern, customStart, customEnd };
+      }
+    } else {
+      // 非常勤: maximize within conditions
+      //   preferDows 設定あり → 希望曜日のみ
+      //   preferDows 未設定  → weekDays/週 を上限に均等分散（weekDays 未設定なら全日）
+      const candidateDays = allDays.filter(day => {
+        const ov = dateOverride[day.ymd];
+        if (ov && ov.type === 'off') return false;
+        if (offDows.includes(day.dow)) return false;
+        return true;
+      });
+
+      if (preferDows.length > 0) {
+        for (const day of candidateDays) {
+          if (!preferDows.includes(day.dow)) continue;
+          const { pattern, customStart, customEnd } = assignPattern(day);
+          day.staffIds.push(staff.id);
+          day.patterns[staff.id] = { pattern, customStart, customEnd };
+        }
+      } else {
+        const targetPerWeek = (staff.weekDays > 0) ? Number(staff.weekDays) : null;
+        if (!targetPerWeek) {
+          for (const day of candidateDays) {
+            const { pattern, customStart, customEnd } = assignPattern(day);
+            day.staffIds.push(staff.id);
+            day.patterns[staff.id] = { pattern, customStart, customEnd };
+          }
+        } else {
+          // Distribute targetPerWeek per calendar week, filling lowest-load days first
+          const weeks = groupByCalendarWeeks(candidateDays);
+          for (const week of weeks) {
+            const n = Math.min(targetPerWeek, week.length);
+            const sorted = week.slice().sort((a, b) => a.staffIds.length - b.staffIds.length);
+            for (let i = 0; i < n; i++) {
+              const { pattern, customStart, customEnd } = assignPattern(sorted[i]);
+              sorted[i].staffIds.push(staff.id);
+              sorted[i].patterns[staff.id] = { pattern, customStart, customEnd };
+            }
+          }
+        }
+      }
     }
   }
 
-  // Convert to plain map
-  const result = {};
-  for (const day of allDays) result[day.ymd] = day.staffIds.slice();
-  return result;
+  /* ── Balance busy-day shifts (土日祝): spread 早番 / 遅番 ── */
+  for (const day of allDays) {
+    if (!day.isBusyDay) continue;
+    const nonMiura = day.staffIds.filter(sid => !miuraStaff || sid !== miuraStaff.id);
+    if (nonMiura.length < 2) continue;
+    const half = Math.ceil(nonMiura.length / 2);
+    nonMiura.forEach((sid, i) => {
+      if (day.patterns[sid].pattern !== 'カスタム') {
+        day.patterns[sid] = { ...day.patterns[sid], pattern: i < half ? '早番' : '遅番' };
+      }
+    });
+  }
+
+  /* ── Apply soft constraints ── */
+  const warnings = [];
+
+  // not_together: remove one of the pair when both assigned same day
+  for (const c of constraints.filter(c2 => c2.type === 'not_together')) {
+    const sids = parseJsonSafe(c.params, {}).staffIds || [];
+    for (const day of allDays) {
+      if (!sids.every(sid => day.staffIds.includes(sid))) continue;
+      // Prefer to remove the 非常勤 one; fall back to last in list
+      const toRemove = sids.find(sid => {
+        const s = staffList.find(x => x.id === sid);
+        return s && s.employment !== '常勤';
+      }) || sids[sids.length - 1];
+      day.staffIds = day.staffIds.filter(sid => sid !== toRemove);
+      delete day.patterns[toRemove];
+      warnings.push({ date: day.ymd, msg: `${c.description || '同日出勤不可'} → ${day.ymd}に適用` });
+    }
+  }
+
+  // not_alone: flag days where the target staff is the only person
+  for (const c of constraints.filter(c2 => c2.type === 'not_alone')) {
+    const targetId = parseJsonSafe(c.params, {}).staffId;
+    if (!targetId) continue;
+    for (const day of allDays) {
+      if (day.staffIds.length === 1 && day.staffIds[0] === targetId) {
+        warnings.push({ date: day.ymd, msg: `⚠️ ${c.description || '単独出勤不可'}: ${day.ymd} 単独になっています` });
+      }
+    }
+  }
+
+  // min_staff: flag days below the minimum
+  for (const c of constraints.filter(c2 => c2.type === 'min_staff')) {
+    const p = parseJsonSafe(c.params, {});
+    const min = Number(p.min) || 2;
+    const dayType = p.dayType || 'all'; // 'all' | 'weekday' | 'weekend'
+    for (const day of allDays) {
+      if (dayType === 'weekday' && day.isBusyDay) continue;
+      if (dayType === 'weekend' && !day.isBusyDay) continue;
+      if (day.staffIds.length < min) {
+        warnings.push({ date: day.ymd, msg: `⚠️ ${day.ymd} 出勤人数 ${day.staffIds.length}人（最低${min}人）` });
+      }
+    }
+  }
+
+  /* ── Build result maps ── */
+  const resultDays = {}, resultPatterns = {};
+  for (const day of allDays) {
+    resultDays[day.ymd]     = day.staffIds;
+    resultPatterns[day.ymd] = day.patterns;
+  }
+  return { days: resultDays, patterns: resultPatterns, warnings };
 }
 
 /**
  * Generate and save a shift proposal for the selected month.
  */
-function generateShift() {
+async function generateShift() {
   const month = document.getElementById('shift-month-sel').value;
   if (!month) { showAlert('alert-shift', '対象月を選択してください', 'error'); return; }
 
@@ -3474,33 +3932,24 @@ function generateShift() {
   if (active.length === 0) { showAlert('alert-shift', '在籍中のスタッフがいません', 'error'); return; }
 
   const [yr, mo] = month.split('-').map(Number);
+  await ensureHolidaysForMonth(month);
+  const shifts  = loadShifts();
 
-  // Tombstone any existing assignments for this month before saving new ones
-  const shifts = loadShifts();
-  const existing = shifts[month];
-  if (existing) {
-    for (const [date, ids] of Object.entries(existing.days || {})) {
-      for (const sid of ids) {
-        gasRequest('saveShift', { id: `${sid}_${date}`, staffId: '__del__', date, isConfirmed: false })
-          .catch(() => {});
-      }
-    }
-  }
-
-  const days    = buildShiftDays(yr, mo);
-  shifts[month] = { isConfirmed: false, days };
+  const { days, patterns, warnings } = buildShiftDays(yr, mo);
+  shifts[month] = { isConfirmed: false, days, patterns, warnings };
   saveShifts(shifts);
   renderShiftTab();
-  showAlert('alert-shift', `${yr}年${mo}月のシフト案を生成しました`);
+  const warnNote = warnings.length ? `（⚠️ ${warnings.length}件の制約警告あり）` : '';
+  showAlert('alert-shift', `${yr}年${mo}月のシフト案を生成しました${warnNote}`);
   gasSyncMonthShifts(month);
 }
 
 /** Re-generate (with confirm if data exists) */
-function regenerateShift() {
+async function regenerateShift() {
   const month  = document.getElementById('shift-month-sel').value;
   const shifts = loadShifts();
   if (shifts[month] && !confirm('現在の提案を破棄して再生成しますか？')) return;
-  generateShift();
+  await generateShift();
 }
 
 /** Confirm the proposal as official shift */
@@ -3534,34 +3983,64 @@ function clearShift() {
   const month = document.getElementById('shift-month-sel').value;
   if (!confirm(`${month} のシフトデータを削除しますか？`)) return;
   const shifts = loadShifts();
-  // Tombstone all rows for this month in GAS
-  const md = shifts[month];
-  if (md) {
-    for (const [date, ids] of Object.entries(md.days || {})) {
-      for (const sid of ids) {
-        gasRequest('saveShift', { id: `${sid}_${date}`, staffId: '__del__', date, isConfirmed: false })
-          .catch(() => {});
-      }
-    }
-  }
   delete shifts[month];
   saveShifts(shifts);
   renderShiftTab();
+  gasRequest('deleteMonthShifts', { month })
+    .then(() => showSyncToast('シフトを削除しました', 'ok', 2000))
+    .catch(err => showGasError('シフト削除エラー: ' + err.message));
 }
 
-/** Add a staff member to a specific day */
-function addStaffToDay(ymd, staffId) {
+/** Add a staff member to a specific day with a given pattern (default 遅番) */
+function addStaffToDay(ymd, staffId, pattern) {
   closeShiftDropdown();
   const month  = document.getElementById('shift-month-sel').value;
   const shifts = loadShifts();
   if (!shifts[month]) return;
-  const days = shifts[month].days;
-  if (!days[ymd]) days[ymd] = [];
-  if (!days[ymd].includes(staffId)) days[ymd].push(staffId);
+  const md = shifts[month];
+  if (!md.days[ymd])     md.days[ymd]     = [];
+  if (!md.patterns)      md.patterns      = {};
+  if (!md.patterns[ymd]) md.patterns[ymd] = {};
+  // Determine pattern: 三浦さん uses day-type pattern automatically
+  if (!pattern) {
+    const staff = loadStaff().find(s => s.id === staffId);
+    if (staff && staff.name.includes('三浦')) {
+      const dt = new Date(ymd);
+      const dow = dt.getDay();
+      pattern = (dow === 0 || dow === 6 || isJapaneseHoliday(ymd)) ? '三浦休日' : '三浦平日';
+    } else {
+      pattern = '遅番';
+    }
+  }
+  if (!md.days[ymd].includes(staffId)) {
+    md.days[ymd].push(staffId);
+    md.patterns[ymd][staffId] = { pattern };
+  }
   saveShifts(shifts);
   renderShiftTab();
-  gasRequest('saveShift', shiftRowToGas(staffId, ymd, shifts[month].isConfirmed))
+  gasRequest('saveShift', shiftRowToGas(staffId, ymd, md.isConfirmed, pattern))
     .catch(err => showGasError('シフト追加エラー: ' + err.message));
+}
+
+/** Cycle the shift pattern for a staff member on a specific day */
+function cycleStaffPattern(ymd, staffId) {
+  const month  = document.getElementById('shift-month-sel').value;
+  const shifts = loadShifts();
+  if (!shifts[month]) return;
+  const md = shifts[month];
+  if (!md.patterns) md.patterns = {};
+  if (!md.patterns[ymd]) md.patterns[ymd] = {};
+  const current = (md.patterns[ymd][staffId] || {}).pattern || '遅番';
+  const staff   = loadStaff().find(s => s.id === staffId);
+  const isMiura = staff && staff.name.includes('三浦');
+  const pool = isMiura ? ['三浦平日', '三浦休日'] : ['遅番', '早番', 'カスタム'];
+  const idx  = pool.indexOf(current);
+  const next = pool[(idx + 1) % pool.length];
+  md.patterns[ymd][staffId] = { ...(md.patterns[ymd][staffId] || {}), pattern: next };
+  saveShifts(shifts);
+  renderShiftTab();
+  gasRequest('saveShift', shiftRowToGas(staffId, ymd, md.isConfirmed, next))
+    .catch(err => showGasError('シフト更新エラー: ' + err.message));
 }
 
 /** Remove a staff member from a specific day */
@@ -3569,11 +4048,12 @@ function removeStaffFromDay(ymd, staffId) {
   const month  = document.getElementById('shift-month-sel').value;
   const shifts = loadShifts();
   if (!shifts[month] || !shifts[month].days[ymd]) return;
-  shifts[month].days[ymd] = shifts[month].days[ymd].filter(id => id !== staffId);
+  const md = shifts[month];
+  md.days[ymd] = md.days[ymd].filter(id => id !== staffId);
+  if (md.patterns && md.patterns[ymd]) delete md.patterns[ymd][staffId];
   saveShifts(shifts);
   renderShiftTab();
-  // Tombstone this row in GAS (no deleteShift action, so mark as deleted)
-  gasRequest('saveShift', { id: `${staffId}_${ymd}`, staffId: '__del__', date: ymd, isConfirmed: false })
+  gasRequest('saveShift', { id: `${staffId}_${ymd}`, staffId: '__del__', date: ymd, isConfirmed: false, shiftPattern: '' })
     .catch(err => showGasError('シフト削除エラー: ' + err.message));
 }
 
@@ -3627,13 +4107,21 @@ function closeShiftDropdown() {
 /**
  * Build the HTML for the shift calendar grid.
  * Returns an HTML string.
+ * @param {number} yr
+ * @param {number} mo
+ * @param {{ days: Object, patterns: Object, warnings: Array }} shiftData
+ * @param {boolean} isConfirmed
  */
-function buildCalendarHTML(yr, mo, days, isConfirmed) {
+function buildCalendarHTML(yr, mo, shiftData, isConfirmed) {
+  const { days = {}, patterns = {} } = shiftData || {};
   const staffList   = loadStaff();
   const colorMap    = buildColorMap(staffList);
   const daysInMonth = new Date(yr, mo, 0).getDate();
   const firstDow    = new Date(yr, mo - 1, 1).getDay(); // 0=Sun
   const todayYMD    = toYMD(new Date());
+
+  // Build a set of dates that have warnings for quick lookup
+  const warnDates = new Set((shiftData.warnings || []).map(w => w.date));
 
   const DAY_NAMES = ['日','月','火','水','木','金','土'];
   let html = '<div class="shift-calendar"><div class="cal-grid">';
@@ -3653,39 +4141,58 @@ function buildCalendarHTML(yr, mo, days, isConfirmed) {
     const dow      = date.getDay();
     const ymd      = toYMD(date);
     const isWkend  = dow === 0 || dow === 6;
+    const holidayName = getJapaneseHolidayName(ymd);
+    const isHoliday = !!holidayName;
     const isToday  = ymd === todayYMD;
-    const assigned = (days && days[ymd]) ? days[ymd] : [];
+    const assigned = days[ymd] || [];
+    const dayPats  = patterns[ymd] || {};
+    const hasWarn  = warnDates.has(ymd);
 
     let cls = 'cal-day';
     if (isWkend)     cls += ' cal-weekend';
+    if (isHoliday)   cls += ' cal-holiday';
     if (isToday)     cls += ' cal-today';
     if (isConfirmed) cls += ' cal-confirmed';
     if (dow === 0)   cls += ' cal-sun';
     if (dow === 6)   cls += ' cal-sat';
+    if (hasWarn)     cls += ' cal-warn';
 
-    // Staff tags
+    // Staff tags with pattern badge
     const tagHTML = assigned.map(sid => {
-      const s    = staffList.find(x => x.id === sid);
-      const name = s ? s.name.slice(0, 4) : '?';
-      const style = colorMap[sid] || '';
+      const s       = staffList.find(x => x.id === sid);
+      const name    = s ? s.name.slice(0, 4) : '?';
+      const style   = colorMap[sid] || '';
+      const patObj  = dayPats[sid] || {};
+      const patName = (typeof patObj === 'string') ? patObj : (patObj.pattern || '遅番');
+      const patInfo = SHIFT_PATTERNS[patName] || SHIFT_PATTERNS['遅番'];
+      const badge   = `<span class="pat-badge ${patInfo.cls}"
+                             onclick="event.stopPropagation();cycleStaffPattern('${ymd}','${sid}')"
+                             title="クリックで番種変更">${patInfo.label}</span>`;
+      const timeStr = patObj.customStart
+        ? `${patObj.customStart}–${patObj.customEnd}`
+        : `${patInfo.start}–${patInfo.end}`;
+
       if (isConfirmed) {
-        return `<div class="shift-tag" style="${style}">${escHtml(name)}</div>`;
+        return `<div class="shift-tag" style="${style}" title="${escHtml(patName)} ${timeStr}">
+          ${escHtml(name)}${badge}
+        </div>`;
       }
-      return `<div class="shift-tag" style="${style}">
-        ${escHtml(name)}
+      return `<div class="shift-tag" style="${style}" title="${escHtml(patName)} ${timeStr}">
+        ${escHtml(name)}${badge}
         <button class="shift-tag-remove"
                 onclick="removeStaffFromDay('${ymd}','${sid}')"
                 title="${escHtml(s ? s.name : '')} を削除">×</button>
       </div>`;
     }).join('');
 
-    const addBtn = isConfirmed ? '' :
-      `<button class="shift-add-btn"
-               onclick="openShiftDropdown('${ymd}', this)">＋</button>`;
+    const warnDot = hasWarn ? `<span title="制約警告あり" style="color:#e65100;font-size:0.65rem;">⚠</span>` : '';
+    const holidayLabel = isHoliday ? `<span class="holiday-name" title="${escHtml(holidayName)}">祝</span>` : '';
+    const addBtn  = isConfirmed ? '' :
+      `<button class="shift-add-btn" onclick="openShiftDropdown('${ymd}', this)">＋</button>`;
 
     html += `<div class="${cls}">
       <div class="shift-day-wrap">
-        <div class="cal-date-num">${d}</div>
+        <div class="cal-date-num">${d}${holidayLabel}${warnDot}</div>
         <div class="shift-tags">${tagHTML}</div>
         ${addBtn}
       </div>
@@ -3702,25 +4209,44 @@ function buildCalendarHTML(yr, mo, days, isConfirmed) {
   html += '</div></div>'; // close cal-grid / shift-calendar
 
   // Summary bar: days per staff
-  if (days) {
-    const countMap = {};
-    for (const ids of Object.values(days)) {
-      for (const id of ids) countMap[id] = (countMap[id] || 0) + 1;
-    }
-    const items = staffList
-      .filter(s => countMap[s.id] !== undefined)
-      .map(s => `<div class="shift-summary-item">${escHtml(s.name)}：<span>${countMap[s.id]}日</span></div>`)
-      .join('');
-    if (items) {
-      html += `<div class="shift-summary-bar">${items}</div>`;
-    }
+  const countMap = {};
+  for (const ids of Object.values(days)) {
+    for (const id of ids) countMap[id] = (countMap[id] || 0) + 1;
   }
+  const items = staffList
+    .filter(s => countMap[s.id] !== undefined)
+    .map(s => `<div class="shift-summary-item">${escHtml(s.name)}：<span>${countMap[s.id]}日</span></div>`)
+    .join('');
+  if (items) html += `<div class="shift-summary-bar">${items}</div>`;
 
   return html;
 }
 
+/* ---- Shift sub-tab management ---- */
+
+let _shiftSubTab = 'generate';
+
+async function switchShiftSubTab(name) {
+  _shiftSubTab = name;
+  ['generate','request','constraint'].forEach(n => {
+    document.getElementById(`shift-panel-${n}`).classList.toggle('hidden', n !== name);
+    document.getElementById(`stab-${n}`).classList.toggle('active', n === name);
+  });
+  await ensureHolidaysForMonth(document.getElementById('shift-month-sel').value);
+  if (name === 'generate')   renderShiftTab();
+  if (name === 'request')    renderShiftRequestPanel();
+  if (name === 'constraint') renderConstraintPanel();
+}
+
+async function onShiftMonthChange() {
+  await ensureHolidaysForMonth(document.getElementById('shift-month-sel').value);
+  if (_shiftSubTab === 'generate')   renderShiftTab();
+  if (_shiftSubTab === 'request')    renderShiftRequestPanel();
+  if (_shiftSubTab === 'constraint') renderConstraintPanel();
+}
+
 /**
- * Render the shift tab UI based on current selection and stored data.
+ * Render the shift calendar panel.
  */
 function renderShiftTab() {
   const month      = document.getElementById('shift-month-sel').value;
@@ -3729,6 +4255,7 @@ function renderShiftTab() {
   const actionsDiv = document.getElementById('shift-actions');
   const statusBdg  = document.getElementById('shift-status-badge');
   const legendCard = document.getElementById('shift-legend-card');
+  const warnArea   = document.getElementById('shift-warnings-area');
 
   if (!month || !shifts[month]) {
     calArea.innerHTML = `<div class="empty-state">
@@ -3738,11 +4265,13 @@ function renderShiftTab() {
     actionsDiv.classList.add('hidden');
     actionsDiv.innerHTML = '';
     statusBdg.innerHTML  = '';
+    if (warnArea) warnArea.innerHTML = '';
     legendCard.style.display = 'none';
     return;
   }
 
-  const { days, isConfirmed } = shifts[month];
+  const md = shifts[month];
+  const { days, patterns, warnings, isConfirmed } = md;
   const [yr, mo] = month.split('-').map(Number);
 
   // Status badge
@@ -3750,8 +4279,18 @@ function renderShiftTab() {
     ? '<span class="shift-status confirmed">✅ 確定済</span>'
     : '<span class="shift-status proposal">✏️ 提案中（未確定）</span>';
 
-  // Calendar
-  calArea.innerHTML = buildCalendarHTML(yr, mo, days, isConfirmed);
+  // Calendar — pass full shift data so patterns & warnings are available
+  calArea.innerHTML = buildCalendarHTML(yr, mo, { days, patterns: patterns || {}, warnings: warnings || [] }, isConfirmed);
+
+  // Warnings bar
+  if (warnArea) {
+    const ws = warnings || [];
+    warnArea.innerHTML = ws.length
+      ? `<div class="shift-warning-bar">⚠️ 制約警告 ${ws.length}件
+           <ul>${ws.map(w => `<li>${escHtml(w.msg)}</li>`).join('')}</ul>
+         </div>`
+      : '';
+  }
 
   // Action buttons
   actionsDiv.classList.remove('hidden');
@@ -3772,18 +4311,351 @@ function renderShiftTab() {
     legendCard.style.display = 'block';
     const colorMap = buildColorMap(active);
     document.getElementById('shift-legend-content').innerHTML = active.map(s => {
-      const empText = s.employment === '非常勤' && s.weekDays
-        ? `非常勤 週${s.weekDays}日` : (s.employment || '常勤');
+      const empText = s.employment === '非常勤' ? '非常勤' : '常勤';
       return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-        <span class="shift-tag" style="${colorMap[s.id]};font-size:0.75rem;padding:3px 9px;">
-          ${escHtml(s.name)}
-        </span>
+        <span class="shift-tag" style="${colorMap[s.id]};font-size:0.75rem;padding:3px 9px;">${escHtml(s.name)}</span>
         <span class="text-sm text-muted">${empText}</span>
       </div>`;
     }).join('');
   } else {
     legendCard.style.display = 'none';
   }
+}
+
+/* ============================================================
+   SHIFT REQUEST PANEL (シフト希望)
+============================================================ */
+
+const DOW_NAMES = ['日','月','火','水','木','金','土'];
+
+/** Populate staff selector and render the form for the current staff */
+function renderShiftRequestPanel() {
+  const month = document.getElementById('shift-month-sel').value;
+  const sel   = document.getElementById('shift-req-staff-sel');
+  const active = loadStaff().filter(s => (s.status || '在籍中') === '在籍中');
+
+  // Populate staff dropdown (keep selection if already set)
+  const prevId = sel.value;
+  sel.innerHTML = '<option value="">スタッフを選択</option>' +
+    active.map(s => `<option value="${s.id}"${s.id === prevId ? ' selected' : ''}>${escHtml(s.name)}</option>`).join('');
+
+  renderShiftRequestForm();
+}
+
+/** Build the dow-checkbox grid HTML */
+function dowCheckGrid(idPrefix, selectedDows) {
+  return `<div class="dow-check-grid">` +
+    DOW_NAMES.map((n, i) =>
+      `<label>
+        <input type="checkbox" name="${idPrefix}" value="${i}"${selectedDows.includes(i) ? ' checked' : ''}>
+        <span>${n}</span>
+      </label>`
+    ).join('') +
+  `</div>`;
+}
+
+/** Render the request form for the selected staff */
+function renderShiftRequestForm() {
+  const month   = document.getElementById('shift-month-sel').value;
+  const staffId = document.getElementById('shift-req-staff-sel').value;
+  const formDiv = document.getElementById('shift-request-form');
+
+  if (!staffId) {
+    formDiv.innerHTML = '<div class="empty-state"><p>スタッフを選択してください</p></div>';
+    return;
+  }
+  if (!month) {
+    formDiv.innerHTML = '<div class="empty-state"><p>対象月を選択してください</p></div>';
+    return;
+  }
+
+  const reqMap  = loadShiftRequests()[month] || {};
+  const req     = reqMap[staffId] || { preferDaysOfWeek: [], offDaysOfWeek: [], specificDates: [] };
+  const prefer  = parseJsonSafe(req.preferDaysOfWeek, []);
+  const off     = parseJsonSafe(req.offDaysOfWeek,    []);
+  const specs   = parseJsonSafe(req.specificDates,    []);
+
+  const specsHtml = specs.length
+    ? specs.map((sd, idx) => {
+        const typeLabel = sd.type === 'off' ? '休み' : sd.type === 'work' ? '出勤' : `カスタム ${sd.start}〜${sd.end}`;
+        return `<div class="specific-date-item">
+          <span class="sdi-date">${sd.date}</span>
+          <span class="sdi-type">${typeLabel}</span>
+          <button class="btn btn-danger btn-sm sdi-del" onclick="removeSpecificDate(${idx})">削除</button>
+        </div>`;
+      }).join('')
+    : '<p class="text-sm text-muted">特定日の指定なし</p>';
+
+  // Detect days in the selected month for the date picker
+  const [yr, mo] = month.split('-').map(Number);
+  const daysInMonth = new Date(yr, mo, 0).getDate();
+  const dateOptions = Array.from({ length: daysInMonth }, (_, i) => {
+    const d = String(i + 1).padStart(2, '0');
+    return `<option value="${month}-${d}">${mo}/${i + 1}</option>`;
+  }).join('');
+
+  formDiv.innerHTML = `
+    <div class="req-section-title">出勤希望曜日</div>
+    <div id="prefer-dows">${dowCheckGrid('prefer-dow', prefer)}</div>
+
+    <div class="req-section-title">休み希望曜日</div>
+    <div id="off-dows">${dowCheckGrid('off-dow', off)}</div>
+
+    <div class="req-section-title">特定日の個別指定</div>
+    <div class="specific-date-list" id="specific-date-list">${specsHtml}</div>
+
+    <div class="flex gap-2 flex-wrap mt-2" style="align-items:center;">
+      <select class="form-control" id="new-spec-date" style="width:110px;">${dateOptions}</select>
+      <select class="form-control" id="new-spec-type" style="width:100px;" onchange="toggleCustomTime()">
+        <option value="off">休み</option>
+        <option value="work">出勤</option>
+        <option value="custom">カスタム時間</option>
+      </select>
+      <span id="custom-time-fields" class="hidden flex gap-1" style="align-items:center;">
+        <input type="time" class="form-control" id="new-spec-start" value="10:00" style="width:90px;">
+        〜
+        <input type="time" class="form-control" id="new-spec-end"   value="18:00" style="width:90px;">
+      </span>
+      <button class="btn btn-outline btn-sm" onclick="addSpecificDate()">＋ 追加</button>
+    </div>
+  `;
+}
+
+function toggleCustomTime() {
+  const t = document.getElementById('new-spec-type').value;
+  document.getElementById('custom-time-fields').classList.toggle('hidden', t !== 'custom');
+}
+
+function addSpecificDate() {
+  const month   = document.getElementById('shift-month-sel').value;
+  const staffId = document.getElementById('shift-req-staff-sel').value;
+  if (!staffId || !month) return;
+
+  const date  = document.getElementById('new-spec-date').value;
+  const type  = document.getElementById('new-spec-type').value;
+  const start = document.getElementById('new-spec-start')?.value || '';
+  const end   = document.getElementById('new-spec-end')?.value   || '';
+
+  const reqs = loadShiftRequests();
+  if (!reqs[month]) reqs[month] = {};
+  const req = reqs[month][staffId] || { preferDaysOfWeek: [], offDaysOfWeek: [], specificDates: [] };
+  const specs = parseJsonSafe(req.specificDates, []);
+  // Replace if same date already exists
+  const filtered = specs.filter(s => s.date !== date);
+  filtered.push(type === 'custom' ? { date, type, start, end } : { date, type });
+  filtered.sort((a, b) => a.date.localeCompare(b.date));
+  req.specificDates = filtered;
+  reqs[month][staffId] = req;
+  saveShiftRequests(reqs);
+  renderShiftRequestForm();
+}
+
+function removeSpecificDate(idx) {
+  const month   = document.getElementById('shift-month-sel').value;
+  const staffId = document.getElementById('shift-req-staff-sel').value;
+  if (!staffId || !month) return;
+  const reqs = loadShiftRequests();
+  const req  = (reqs[month] || {})[staffId];
+  if (!req) return;
+  const specs = parseJsonSafe(req.specificDates, []);
+  specs.splice(idx, 1);
+  req.specificDates = specs;
+  reqs[month][staffId] = req;
+  saveShiftRequests(reqs);
+  renderShiftRequestForm();
+}
+
+/** Save the current form values to cache + GAS */
+function saveShiftRequestForm() {
+  const month   = document.getElementById('shift-month-sel').value;
+  const staffId = document.getElementById('shift-req-staff-sel').value;
+  if (!staffId || !month) { showAlert('alert-shift', 'スタッフと対象月を選択してください', 'error'); return; }
+
+  const preferDows = [...document.querySelectorAll('input[name="prefer-dow"]:checked')].map(el => Number(el.value));
+  const offDows    = [...document.querySelectorAll('input[name="off-dow"]:checked')].map(el => Number(el.value));
+
+  const reqs = loadShiftRequests();
+  if (!reqs[month]) reqs[month] = {};
+  const existing = reqs[month][staffId] || {};
+  const id = existing.id || `req_${staffId}_${month}`;
+
+  const record = {
+    id,
+    preferDaysOfWeek: preferDows,
+    offDaysOfWeek:    offDows,
+    specificDates:    parseJsonSafe(existing.specificDates, []),
+  };
+  reqs[month][staffId] = record;
+  saveShiftRequests(reqs);
+
+  // Sync to GAS
+  showSyncToast('同期中...', 'syncing');
+  gasRequest('saveShiftRequest', {
+    id,
+    staffId,
+    yearMonth:        month,
+    preferDaysOfWeek: JSON.stringify(preferDows),
+    offDaysOfWeek:    JSON.stringify(offDows),
+    specificDates:    JSON.stringify(record.specificDates),
+  })
+    .then(() => showSyncToast('シフト希望を保存しました', 'ok', 2000))
+    .catch(err => showGasError('シフト希望保存エラー: ' + err.message));
+
+  showAlert('alert-shift', 'シフト希望を保存しました');
+}
+
+/* ============================================================
+   SOFT CONSTRAINT PANEL (ソフト制約)
+============================================================ */
+
+const CONSTRAINT_TYPE_LABELS = {
+  not_together: '同日出勤不可',
+  not_alone:    '単独出勤不可',
+  prefer_day_off: '定休日優先',
+  min_staff:    '最低出勤人数',
+};
+
+function renderConstraintPanel() {
+  const month = document.getElementById('shift-month-sel').value;
+  const list  = document.getElementById('constraint-list');
+  if (!list) return;
+
+  const constraints = (loadSoftConstraints()[month] || []);
+  const staffList   = loadStaff();
+
+  if (!month) {
+    list.innerHTML = '<div class="empty-state"><p>対象月を選択してください</p></div>';
+    return;
+  }
+
+  if (constraints.length === 0) {
+    list.innerHTML = '<p class="text-sm text-muted">この月の制約はまだありません</p>';
+  } else {
+    list.innerHTML = constraints.map(c => {
+      const typeLabel = CONSTRAINT_TYPE_LABELS[c.type] || c.type;
+      const prioClass = `con-priority-${c.priority || 'medium'}`;
+      const prioLabel = c.priority === 'high' ? '高' : c.priority === 'low' ? '低' : '中';
+      return `<div class="constraint-item">
+        <div class="ci-body">
+          <div class="ci-desc">${escHtml(c.description || typeLabel)}</div>
+          <div class="ci-meta">
+            <span class="con-type-badge">${typeLabel}</span>
+            <span class="con-type-badge ${prioClass}" style="margin-left:4px;">優先度: ${prioLabel}</span>
+          </div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="deleteConstraint('${escHtml(c.id)}')">削除</button>
+      </div>`;
+    }).join('');
+  }
+
+  // Render the param UI for the currently selected type
+  renderConstraintParamUI();
+}
+
+function renderConstraintParamUI() {
+  const ui       = document.getElementById('constraint-param-ui');
+  const type     = document.getElementById('new-constraint-type')?.value;
+  const staffList= loadStaff().filter(s => (s.status || '在籍中') === '在籍中');
+  if (!ui) return;
+
+  const staffOptions = staffList.map(s =>
+    `<option value="${s.id}">${escHtml(s.name)}</option>`).join('');
+
+  if (type === 'not_together') {
+    ui.innerHTML = `<div class="form-row">
+      <label class="form-label mb-0">スタッフ①</label>
+      <select class="form-control" id="cp-staff1" style="width:150px;">${staffOptions}</select>
+      <label class="form-label mb-0">スタッフ②</label>
+      <select class="form-control" id="cp-staff2" style="width:150px;">${staffOptions}</select>
+    </div>`;
+  } else if (type === 'not_alone') {
+    ui.innerHTML = `<div class="form-row">
+      <label class="form-label mb-0">対象スタッフ</label>
+      <select class="form-control" id="cp-staff1" style="width:150px;">${staffOptions}</select>
+    </div>`;
+  } else if (type === 'prefer_day_off') {
+    ui.innerHTML = `<div class="form-row">
+      <label class="form-label mb-0">定休優先曜日</label>
+      ${dowCheckGrid('cp-dow', [])}
+    </div>`;
+  } else if (type === 'min_staff') {
+    ui.innerHTML = `<div class="form-row">
+      <label class="form-label mb-0">最低人数</label>
+      <input type="number" class="form-control" id="cp-min" value="2" min="1" style="width:70px;">
+      <select class="form-control" id="cp-daytype" style="width:100px;">
+        <option value="all">全日</option>
+        <option value="weekday">平日のみ</option>
+        <option value="weekend">土日のみ</option>
+      </select>
+    </div>`;
+  } else {
+    ui.innerHTML = '';
+  }
+}
+
+function addConstraint() {
+  const month = document.getElementById('shift-month-sel').value;
+  if (!month) { showAlert('alert-shift', '対象月を選択してください', 'error'); return; }
+
+  const type  = document.getElementById('new-constraint-type').value;
+  const desc  = document.getElementById('new-constraint-desc').value.trim();
+  const prio  = document.getElementById('new-constraint-priority').value;
+  let params  = {};
+
+  if (type === 'not_together') {
+    const s1 = document.getElementById('cp-staff1')?.value;
+    const s2 = document.getElementById('cp-staff2')?.value;
+    if (!s1 || !s2 || s1 === s2) { showAlert('alert-shift', '異なるスタッフを2名選択してください', 'error'); return; }
+    params = { staffIds: [s1, s2] };
+  } else if (type === 'not_alone') {
+    const s1 = document.getElementById('cp-staff1')?.value;
+    if (!s1) { showAlert('alert-shift', 'スタッフを選択してください', 'error'); return; }
+    params = { staffId: s1 };
+  } else if (type === 'prefer_day_off') {
+    const dows = [...document.querySelectorAll('input[name="cp-dow"]:checked')].map(el => Number(el.value));
+    if (dows.length === 0) { showAlert('alert-shift', '曜日を1つ以上選択してください', 'error'); return; }
+    params = { daysOfWeek: dows };
+  } else if (type === 'min_staff') {
+    params = {
+      min:     Number(document.getElementById('cp-min')?.value || 2),
+      dayType: document.getElementById('cp-daytype')?.value || 'all',
+    };
+  }
+
+  const id = `con_${month}_${Date.now()}`;
+  const record = { id, type, params: JSON.stringify(params), description: desc, priority: prio };
+
+  const cons = loadSoftConstraints();
+  if (!cons[month]) cons[month] = [];
+  cons[month].push(record);
+  saveSoftConstraints(cons);
+
+  // Clear desc field
+  document.getElementById('new-constraint-desc').value = '';
+
+  // Sync to GAS
+  showSyncToast('同期中...', 'syncing');
+  gasRequest('saveConstraint', { ...record, yearMonth: month })
+    .then(() => showSyncToast('制約を保存しました', 'ok', 2000))
+    .catch(err => showGasError('制約保存エラー: ' + err.message));
+
+  renderConstraintPanel();
+  showAlert('alert-shift', '制約を追加しました');
+}
+
+function deleteConstraint(id) {
+  const month = document.getElementById('shift-month-sel').value;
+  if (!month) return;
+  if (!confirm('この制約を削除しますか？')) return;
+
+  const cons = loadSoftConstraints();
+  if (cons[month]) cons[month] = cons[month].filter(c => c.id !== id);
+  saveSoftConstraints(cons);
+
+  gasRequest('deleteConstraint', { id })
+    .catch(err => showGasError('制約削除エラー: ' + err.message));
+
+  renderConstraintPanel();
 }
 
 /* ============================================================
@@ -4159,8 +5031,15 @@ function parseAttendanceRows(rows) {
 
 /**
  * Parse flat shift rows into our nested structure:
- * { 'YYYY-MM': { isConfirmed: bool, days: { 'YYYY-MM-DD': [staffId, ...] } } }
+ * {
+ *   'YYYY-MM': {
+ *     isConfirmed: bool,
+ *     days:     { 'YYYY-MM-DD': [staffId, ...] },
+ *     patterns: { 'YYYY-MM-DD': { [staffId]: pattern } }
+ *   }
+ * }
  * Rows with staffId='__del__' or '' are ignored (tombstones).
+ * Column layout: id, staffId, date, isConfirmed, shiftPattern
  */
 function parseShiftRows(rows) {
   const result = {};
@@ -4170,11 +5049,62 @@ function parseShiftRows(rows) {
     if (staffId === '__del__' || staffId === '') continue;
     const date        = String(r[2]);
     const isConfirmed = r[3] === true || r[3] === 'true' || r[3] === 1 || r[3] === 'TRUE';
+    const pattern     = String(r[4] || '遅番');
     const month       = date.slice(0, 7);
-    if (!result[month]) result[month] = { isConfirmed: false, days: {} };
+    if (!result[month]) result[month] = { isConfirmed: false, days: {}, patterns: {} };
     if (!result[month].days[date]) result[month].days[date] = [];
-    if (!result[month].days[date].includes(staffId)) result[month].days[date].push(staffId);
+    if (!result[month].patterns[date]) result[month].patterns[date] = {};
+    if (!result[month].days[date].includes(staffId)) {
+      result[month].days[date].push(staffId);
+      result[month].patterns[date][staffId] = { pattern };
+    }
     if (isConfirmed) result[month].isConfirmed = true;
+  }
+  return result;
+}
+
+/**
+ * Parse シフト希望 rows:
+ * { 'YYYY-MM': { [staffId]: { id, preferDaysOfWeek, offDaysOfWeek, specificDates } } }
+ * Column layout: id, staffId, yearMonth, preferDaysOfWeek(JSON), offDaysOfWeek(JSON), specificDates(JSON)
+ */
+function parseShiftRequestRows(rows) {
+  const result = {};
+  for (const r of rows) {
+    if (r[0] == null || String(r[0]).trim() === '') continue;
+    const id        = String(r[0]);
+    const staffId   = String(r[1]);
+    const yearMonth = String(r[2]);
+    if (!result[yearMonth]) result[yearMonth] = {};
+    result[yearMonth][staffId] = {
+      id,
+      preferDaysOfWeek: parseJsonSafe(r[3], []),
+      offDaysOfWeek:    parseJsonSafe(r[4], []),
+      specificDates:    parseJsonSafe(r[5], []),
+    };
+  }
+  return result;
+}
+
+/**
+ * Parse ソフト制約 rows:
+ * { 'YYYY-MM': [{ id, type, params, description, priority }] }
+ * Column layout: id, yearMonth, type, params(JSON), description, priority
+ */
+function parseSoftConstraintRows(rows) {
+  const result = {};
+  for (const r of rows) {
+    if (r[0] == null || String(r[0]).trim() === '') continue;
+    const id        = String(r[0]);
+    const yearMonth = String(r[1]);
+    if (!result[yearMonth]) result[yearMonth] = [];
+    result[yearMonth].push({
+      id,
+      type:        String(r[2] || ''),
+      params:      String(r[3] || '{}'),
+      description: String(r[4] || ''),
+      priority:    String(r[5] || 'medium'),
+    });
   }
   return result;
 }
@@ -4219,8 +5149,14 @@ function logToGas(l) {
   };
 }
 
-function shiftRowToGas(staffId, date, isConfirmed) {
-  return { id: `${staffId}_${date}`, staffId, date, isConfirmed: !!isConfirmed };
+function shiftRowToGas(staffId, date, isConfirmed, pattern) {
+  return {
+    id: `${staffId}_${date}`,
+    staffId,
+    date,
+    isConfirmed: !!isConfirmed,
+    shiftPattern: pattern || '遅番',
+  };
 }
 
 /* ---- GAS sync helpers ---- */
@@ -4247,13 +5183,19 @@ function gasSyncMonthShifts(month) {
   const md = shifts[month];
   if (!md) return;
   showSyncToast('シフト同期中...', 'syncing');
-  const promises = [];
+
+  // Collect all rows and send as a single bulk request to avoid GAS rate limits
+  const rows = [];
   for (const [date, ids] of Object.entries(md.days || {})) {
     for (const sid of ids) {
-      promises.push(gasRequest('saveShift', shiftRowToGas(sid, date, md.isConfirmed)));
+      const pat = ((md.patterns || {})[date] || {})[sid];
+      const patName = (typeof pat === 'string') ? pat : ((pat && pat.pattern) ? pat.pattern : '遅番');
+      rows.push(shiftRowToGas(sid, date, md.isConfirmed, patName));
     }
   }
-  Promise.all(promises)
+  if (rows.length === 0) { showSyncToast('保存完了', 'ok', 1500); return; }
+
+  gasRequest('saveBulkShifts', { rows: JSON.stringify(rows), replaceMonth: month })
     .then(() => showSyncToast('シフト保存完了', 'ok', 2500))
     .catch(err => showGasError('シフト保存エラー: ' + err.message));
 }
@@ -4287,15 +5229,14 @@ async function fetchAllFromGas() {
   const raw = await gasRequest('getAll');
 
   // GAS returns 2D arrays; an empty sheet returns [['']] — filter that out
-  const staffRows   = (raw.staff     || []).filter(r => Array.isArray(r) && r.length > 1);
-  const attRows     = (raw.attendance|| []).filter(r => Array.isArray(r) && r.length > 1);
-  const shiftRows   = (raw.shift     || []).filter(r => Array.isArray(r) && r.length > 1);
-  const payslipRows = (raw.payslips  || []).filter(r => Array.isArray(r) && r.length > 1);
+  const validRows = arr => (arr || []).filter(r => Array.isArray(r) && r.length > 1);
 
-  saveStaff(parseStaffRows(staffRows));
-  saveLogs(parseAttendanceRows(attRows));
-  saveShifts(parseShiftRows(shiftRows));
-  savePayslips(parsePayslipRows(payslipRows));
+  saveStaff(parseStaffRows(validRows(raw.staff)));
+  saveLogs(parseAttendanceRows(validRows(raw.attendance)));
+  saveShifts(parseShiftRows(validRows(raw.shift)));
+  savePayslips(parsePayslipRows(validRows(raw.payslips)));
+  saveShiftRequests(parseShiftRequestRows(validRows(raw.shiftRequest)));
+  saveSoftConstraints(parseSoftConstraintRows(validRows(raw.softConstraint)));
 }
 
 /* ============================================================
