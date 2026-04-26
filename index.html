@@ -1219,11 +1219,15 @@
     .specific-date-item .sdi-del  { margin-left: auto; }
     .weekday-time-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      grid-template-columns: 1fr;
       gap: 6px;
       margin-top: 6px;
     }
     .weekday-time-item {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
       border: 1.5px solid var(--beige-dark);
       border-radius: var(--radius-sm);
       padding: 7px;
@@ -1234,14 +1238,19 @@
       align-items: center;
       gap: 4px;
       font-weight: 700;
-      margin-bottom: 5px;
+      margin-bottom: 0;
+      white-space: nowrap;
     }
     .weekday-time-item .time-pair {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
       align-items: center;
       gap: 4px;
+      min-width: 0;
     }
     .weekday-time-item input[type=time] {
+      width: 100%;
+      min-width: 0;
       padding: 6px 7px;
       font-size: 0.78rem;
     }
@@ -4692,15 +4701,15 @@ function saveShiftRequestForm() {
       weekdayTimePrefs: JSON.stringify(weekdayTimePrefs),
     });
   }
-  saveShiftRequests(reqs);
-
   // Sync to GAS
   showSyncToast('同期中...', 'syncing');
   gasRequest('saveBulkShiftRequests', { rows: JSON.stringify(rows), replaceMonth: month })
-    .then(() => showSyncToast('全スタッフのシフト希望を保存しました', 'ok', 2000))
+    .then(() => {
+      saveShiftRequests(reqs);
+      showSyncToast('全スタッフのシフト希望を保存しました', 'ok', 2000);
+      showAlert('alert-shift', '全スタッフのシフト希望を保存しました');
+    })
     .catch(err => showGasError('シフト希望保存エラー: ' + err.message));
-
-  showAlert('alert-shift', '全スタッフのシフト希望を保存しました');
 }
 
 /* ============================================================
@@ -4841,22 +4850,20 @@ function addConstraint() {
   const id = `con_${month}_${Date.now()}`;
   const record = { id, type, params: JSON.stringify(params), description: desc, priority: prio };
 
-  const cons = loadSoftConstraints();
-  if (!cons[month]) cons[month] = [];
-  cons[month].push(record);
-  saveSoftConstraints(cons);
-
-  // Clear desc field
-  document.getElementById('new-constraint-desc').value = '';
-
   // Sync to GAS
   showSyncToast('同期中...', 'syncing');
   gasRequest('saveConstraint', { ...record, yearMonth: month })
-    .then(() => showSyncToast('制約を保存しました', 'ok', 2000))
+    .then(() => {
+      const cons = loadSoftConstraints();
+      if (!cons[month]) cons[month] = [];
+      cons[month].push(record);
+      saveSoftConstraints(cons);
+      document.getElementById('new-constraint-desc').value = '';
+      renderConstraintPanel();
+      showSyncToast('制約を保存しました', 'ok', 2000);
+      showAlert('alert-shift', '制約を追加しました');
+    })
     .catch(err => showGasError('制約保存エラー: ' + err.message));
-
-  renderConstraintPanel();
-  showAlert('alert-shift', '制約を追加しました');
 }
 
 function deleteConstraint(id) {
