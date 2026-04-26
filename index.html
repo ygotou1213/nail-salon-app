@@ -1333,7 +1333,7 @@
     body.share-mode .main { display: none; }
 
     #share-view {
-      max-width: 980px;
+      max-width: 1180px;
       margin: 0 auto;
       padding: 16px;
     }
@@ -1433,19 +1433,47 @@
     .share-day-header.holiday  { color: #e53935; }
     .share-day-header.saturday { color: #1565c0; }
     .share-day-staff {
-      padding: 8px 14px 10px;
+      padding: 8px 8px 10px;
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 6px;
     }
     .share-staff-row {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
-      gap: 8px;
-      font-size: 0.9rem;
+      gap: 6px;
+      border-radius: 8px;
+      padding: 5px 7px;
+      font-size: 0.84rem;
+      line-height: 1.25;
     }
-    .share-staff-name { font-weight: 600; min-width: 80px; }
-    .share-staff-time { color: #555; font-size: 0.85rem; }
+    .share-staff-name {
+      font-weight: 800;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .share-staff-meta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
+      min-width: 0;
+      white-space: nowrap;
+    }
+    .share-pattern-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(80,50,60,0.12);
+      font-size: 0.68rem;
+      font-weight: 900;
+    }
+    .share-staff-time { color: inherit; font-size: 0.76rem; font-weight: 700; }
     .share-empty { text-align: center; color: #aaa; padding: 40px 0; font-size: 0.95rem; }
     .share-month-grid {
       display: grid;
@@ -1487,22 +1515,15 @@
       gap: 4px;
     }
     .share-cal-staff .share-staff-row {
-      display: block;
-      background: #fff5f8;
-      border-radius: 7px;
       padding: 4px 6px;
       font-size: 0.76rem;
-      line-height: 1.25;
-    }
-    .share-cal-staff .share-staff-name,
-    .share-cal-staff .share-staff-time {
-      display: block;
-      min-width: 0;
     }
     .share-week-grid {
       display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
+      grid-template-columns: repeat(7, minmax(132px, 1fr));
       gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px;
     }
     .share-week-card {
       background: #fff;
@@ -1518,8 +1539,23 @@
       .share-header h2 { font-size: 1.12rem; }
       .share-month-grid { gap: 4px; }
       .share-cal-day { min-height: 84px; padding: 5px; }
-      .share-cal-staff .share-staff-row { font-size: 0.68rem; padding: 3px 4px; }
-      .share-cal-staff .share-staff-time { display: none; }
+      .share-cal-staff .share-staff-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2px;
+        font-size: 0.68rem;
+        padding: 3px 4px;
+      }
+      .share-cal-staff .share-staff-meta {
+        justify-content: flex-start;
+        gap: 3px;
+        white-space: normal;
+      }
+      .share-cal-staff .share-staff-time { font-size: 0.62rem; }
+      .share-cal-staff .share-pattern-badge {
+        min-width: 15px;
+        height: 15px;
+        font-size: 0.58rem;
+      }
       .share-week-grid { grid-template-columns: 1fr; }
       .share-filter-row { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
       .share-filter-btn { flex: 0 0 auto; }
@@ -4773,21 +4809,34 @@ async function renderShiftShareView(month) {
   }
 
   const staffList = loadStaff().filter(s => (s.status || '在籍中') === '在籍中');
+  const colorMap = buildColorMap(staffList);
   const days = md.days || {};
   const patterns = md.patterns || {};
   await ensureHolidaysForMonth(month);
   const holidays = (_holidayCache[yr] || {});
   const DOW = ['日','月','火','水','木','金','土'];
 
-  function getTimeLabel(staffId, ymd) {
+  function getPatternDisplay(staffId, ymd) {
     const pat = fillPatternTimeFromRequests(staffId, ymd, (patterns[ymd] || {})[staffId]);
-    if (!pat) return '';
+    if (!pat) return { label: '', time: '', compactTime: '' };
     const name = pat.pattern || '';
-    if (name === 'カスタム') {
-      return pat.customStart && pat.customEnd ? `${pat.customStart}〜${pat.customEnd}` : 'カスタム';
-    }
     const info = SHIFT_PATTERNS[name];
-    return info ? `${info.start}〜${info.end}` : name;
+    const label = info ? info.label : (name ? name.slice(0, 1) : '');
+    let time = '';
+    if (name === 'カスタム') {
+      time = pat.customStart && pat.customEnd ? `${pat.customStart}〜${pat.customEnd}` : 'カスタム';
+    } else if (info) {
+      time = `${info.start}〜${info.end}`;
+    } else {
+      time = name;
+    }
+    return { label, time, compactTime: time.replace(':00', '').replace(':00', '') };
+  }
+
+  function shortStaffName(staff, fallback) {
+    const name = staff ? staff.name : fallback;
+    const compact = String(name || '').replace(/\s+/g, '');
+    return compact.length > 4 ? compact.slice(0, 4) : compact;
   }
 
   let selectedStaff = null;
@@ -4822,11 +4871,14 @@ async function renderShiftShareView(month) {
     if (staffIds.length === 0) return '';
     return staffIds.map(sid => {
       const staff = staffList.find(s => s.id === sid);
-      const time = getTimeLabel(sid, ymd);
+      const pattern = getPatternDisplay(sid, ymd);
+      const staffName = compact ? shortStaffName(staff, sid) : (staff ? staff.name : sid);
+      const time = compact ? pattern.compactTime : pattern.time;
+      const badgeHtml = pattern.label ? `<span class="share-pattern-badge">${escHtml(pattern.label)}</span>` : '';
       const timeHtml = time ? `<span class="share-staff-time">${escHtml(time)}</span>` : '';
-      return `<div class="share-staff-row">
-        <span class="share-staff-name">${escHtml(staff ? staff.name : sid)}</span>
-        ${compact ? timeHtml : timeHtml}
+      return `<div class="share-staff-row${compact ? ' compact' : ''}" style="${colorMap[sid] || ''}">
+        <span class="share-staff-name">${escHtml(staffName)}</span>
+        <span class="share-staff-meta">${badgeHtml}${timeHtml}</span>
       </div>`;
     }).join('');
   }
@@ -4887,7 +4939,7 @@ async function renderShiftShareView(month) {
     const filterBtns = [
       `<button class="share-filter-btn${selectedStaff === null ? ' active' : ''}" onclick="__shareFilter(null)">全員</button>`,
       ...staffList.map(s =>
-        `<button class="share-filter-btn${selectedStaff === s.id ? ' active' : ''}" onclick="__shareFilter(${staffArg(s)})">${escHtml(s.name)}</button>`)
+        `<button class="share-filter-btn${selectedStaff === s.id ? ' active' : ''}" style="${selectedStaff === s.id ? '' : colorMap[s.id]}" onclick="__shareFilter(${staffArg(s)})">${escHtml(s.name)}</button>`)
     ].join('');
 
     div.innerHTML = `<div class="share-header">
