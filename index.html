@@ -1187,6 +1187,23 @@
       background: var(--pink-lightest);
     }
     .specific-date-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+    .shift-request-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .shift-request-card {
+      border: 1.5px solid var(--beige-dark);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      background: var(--white);
+    }
+    .shift-request-card-title {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--rose);
+      margin-bottom: 8px;
+    }
     .specific-date-item {
       display: flex;
       align-items: center;
@@ -1241,6 +1258,21 @@
       flex-wrap: wrap;
       align-items: center;
       margin-bottom: 8px;
+    }
+    .dow-number-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(62px, 1fr));
+      gap: 6px;
+      width: 100%;
+    }
+    .dow-number-grid label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-light);
+    }
+    .dow-number-grid input {
+      margin-top: 3px;
+      padding: 8px 9px;
     }
   </style>
 </head>
@@ -1462,17 +1494,9 @@
 
       <!-- ── Panel: シフト希望 ── -->
       <div id="shift-panel-request" class="hidden">
-        <div class="flex items-center gap-2 flex-wrap mb-3">
-          <label class="form-label mb-0" style="white-space:nowrap;">スタッフ</label>
-          <select class="form-control" id="shift-req-staff-sel"
-                  style="flex:0 0 auto;width:200px;"
-                  onchange="renderShiftRequestForm()"></select>
-        </div>
-        <div id="shift-request-form">
-          <div class="empty-state"><p>スタッフを選択してください</p></div>
-        </div>
+        <div id="shift-request-form"></div>
         <div class="mt-3">
-          <button class="btn btn-primary btn-sm" onclick="saveShiftRequestForm()">💾 このスタッフの希望を保存</button>
+          <button class="btn btn-primary btn-sm" onclick="saveShiftRequestForm()">💾 全スタッフの希望を保存</button>
         </div>
       </div>
 
@@ -1490,6 +1514,7 @@
               <option value="not_alone">単独出勤不可</option>
               <option value="prefer_day_off">定休日優先</option>
               <option value="min_staff">最低出勤人数</option>
+              <option value="max_staff_by_dow">曜日別最大人数</option>
             </select>
           </div>
           <div id="constraint-param-ui" class="mb-2"></div>
@@ -3946,6 +3971,24 @@ function buildShiftDays(year, month) {
     }
   }
 
+  // max_staff_by_dow: cap staff count by day of week
+  for (const c of constraints.filter(c2 => c2.type === 'max_staff_by_dow')) {
+    const maxByDow = parseJsonSafe(c.params, {}).maxByDow || {};
+    for (const day of allDays) {
+      const max = Number(maxByDow[String(day.dow)] || 0);
+      if (!max || day.staffIds.length <= max) continue;
+      while (day.staffIds.length > max) {
+        const toRemove = [...day.staffIds].reverse().find(sid => {
+          const staff = staffList.find(x => x.id === sid);
+          return staff && staff.employment !== '常勤';
+        }) || day.staffIds[day.staffIds.length - 1];
+        day.staffIds = day.staffIds.filter(sid => sid !== toRemove);
+        delete day.patterns[toRemove];
+      }
+      warnings.push({ date: day.ymd, msg: `⚠️ ${c.description || '曜日別最大人数'}: ${day.ymd} を最大${max}人に調整` });
+    }
+  }
+
   // not_alone: flag days where the target staff is the only person
   for (const c of constraints.filter(c2 => c2.type === 'not_alone')) {
     const targetId = parseJsonSafe(c.params, {}).staffId;
@@ -4387,17 +4430,8 @@ function renderShiftTab() {
 
 const DOW_NAMES = ['日','月','火','水','木','金','土'];
 
-/** Populate staff selector and render the form for the current staff */
+/** Render request cards for all active staff */
 function renderShiftRequestPanel() {
-  const month = document.getElementById('shift-month-sel').value;
-  const sel   = document.getElementById('shift-req-staff-sel');
-  const active = loadStaff().filter(s => (s.status || '在籍中') === '在籍中');
-
-  // Populate staff dropdown (keep selection if already set)
-  const prevId = sel.value;
-  sel.innerHTML = '<option value="">スタッフを選択</option>' +
-    active.map(s => `<option value="${s.id}"${s.id === prevId ? ' selected' : ''}>${escHtml(s.name)}</option>`).join('');
-
   renderShiftRequestForm();
 }
 
@@ -4413,37 +4447,27 @@ function dowCheckGrid(idPrefix, selectedDows) {
   `</div>`;
 }
 
-/** Render the request form for the selected staff */
+function getShiftRequestCard(staffId) {
+  return [...document.querySelectorAll('.shift-request-card')]
+    .find(el => el.dataset.staffId === staffId);
+}
+
+/** Render request forms for all active staff */
 function renderShiftRequestForm() {
   const month   = document.getElementById('shift-month-sel').value;
-  const staffId = document.getElementById('shift-req-staff-sel').value;
   const formDiv = document.getElementById('shift-request-form');
-
-  if (!staffId) {
-    formDiv.innerHTML = '<div class="empty-state"><p>スタッフを選択してください</p></div>';
-    return;
-  }
   if (!month) {
     formDiv.innerHTML = '<div class="empty-state"><p>対象月を選択してください</p></div>';
     return;
   }
 
-  const reqMap  = loadShiftRequests()[month] || {};
-  const req     = reqMap[staffId] || { preferDaysOfWeek: [], offDaysOfWeek: [], specificDates: [] };
-  const prefer  = parseJsonSafe(req.preferDaysOfWeek, []);
-  const off     = parseJsonSafe(req.offDaysOfWeek,    []);
-  const specs   = parseJsonSafe(req.specificDates,    []);
+  const active = loadStaff().filter(s => (s.status || '在籍中') === '在籍中');
+  if (active.length === 0) {
+    formDiv.innerHTML = '<div class="empty-state"><p>在籍中のスタッフがいません</p></div>';
+    return;
+  }
 
-  const specsHtml = specs.length
-    ? specs.map((sd, idx) => {
-        const typeLabel = sd.type === 'off' ? '休み' : sd.type === 'work' ? '出勤' : `カスタム ${sd.start}〜${sd.end}`;
-        return `<div class="specific-date-item">
-          <span class="sdi-date">${sd.date}</span>
-          <span class="sdi-type">${typeLabel}</span>
-          <button class="btn btn-danger btn-sm sdi-del" onclick="removeSpecificDate(${idx})">削除</button>
-        </div>`;
-      }).join('')
-    : '<p class="text-sm text-muted">特定日の指定なし</p>';
+  const reqMap  = loadShiftRequests()[month] || {};
 
   // Detect days in the selected month for the date picker
   const [yr, mo] = month.split('-').map(Number);
@@ -4453,47 +4477,69 @@ function renderShiftRequestForm() {
     return `<option value="${month}-${d}">${mo}/${i + 1}</option>`;
   }).join('');
 
-  formDiv.innerHTML = `
-    <div class="req-section-title">出勤希望曜日</div>
-    <div id="prefer-dows">${dowCheckGrid('prefer-dow', prefer)}</div>
+  formDiv.innerHTML = `<div class="shift-request-grid">` + active.map(staff => {
+    const req     = reqMap[staff.id] || { preferDaysOfWeek: [], offDaysOfWeek: [], specificDates: [] };
+    const prefer  = parseJsonSafe(req.preferDaysOfWeek, []);
+    const off     = parseJsonSafe(req.offDaysOfWeek,    []);
+    const specs   = parseJsonSafe(req.specificDates,    []);
+    const sidJs   = JSON.stringify(staff.id).replace(/"/g, '&quot;');
 
-    <div class="req-section-title">休み希望曜日</div>
-    <div id="off-dows">${dowCheckGrid('off-dow', off)}</div>
+    const specsHtml = specs.length
+      ? specs.map((sd, idx) => {
+          const typeLabel = sd.type === 'off' ? '休み' : sd.type === 'work' ? '出勤' : `カスタム ${sd.start}〜${sd.end}`;
+          return `<div class="specific-date-item">
+            <span class="sdi-date">${sd.date}</span>
+            <span class="sdi-type">${typeLabel}</span>
+            <button class="btn btn-danger btn-sm sdi-del" onclick="removeSpecificDate(${sidJs}, ${idx})">削除</button>
+          </div>`;
+        }).join('')
+      : '<p class="text-sm text-muted">特定日の指定なし</p>';
 
-    <div class="req-section-title">特定日の個別指定</div>
-    <div class="specific-date-list" id="specific-date-list">${specsHtml}</div>
+    return `<div class="shift-request-card" data-staff-id="${escHtml(staff.id)}">
+      <div class="shift-request-card-title">${escHtml(staff.name)}</div>
 
-    <div class="flex gap-2 flex-wrap mt-2" style="align-items:center;">
-      <select class="form-control" id="new-spec-date" style="width:110px;">${dateOptions}</select>
-      <select class="form-control" id="new-spec-type" style="width:100px;" onchange="toggleCustomTime()">
-        <option value="off">休み</option>
-        <option value="work">出勤</option>
-        <option value="custom">カスタム時間</option>
-      </select>
-      <span id="custom-time-fields" class="hidden flex gap-1" style="align-items:center;">
-        <input type="time" class="form-control" id="new-spec-start" value="10:00" style="width:90px;">
-        〜
-        <input type="time" class="form-control" id="new-spec-end"   value="18:00" style="width:90px;">
-      </span>
-      <button class="btn btn-outline btn-sm" onclick="addSpecificDate()">＋ 追加</button>
-    </div>
-  `;
+      <div class="req-section-title">出勤希望曜日</div>
+      <div class="prefer-dows">${dowCheckGrid(`prefer-dow-${staff.id}`, prefer)}</div>
+
+      <div class="req-section-title">休み希望曜日</div>
+      <div class="off-dows">${dowCheckGrid(`off-dow-${staff.id}`, off)}</div>
+
+      <div class="req-section-title">特定日の個別指定</div>
+      <div class="specific-date-list">${specsHtml}</div>
+
+      <div class="flex gap-2 flex-wrap mt-2" style="align-items:center;">
+        <select class="form-control new-spec-date" style="width:110px;">${dateOptions}</select>
+        <select class="form-control new-spec-type" style="width:100px;" onchange="toggleCustomTime(this)">
+          <option value="off">休み</option>
+          <option value="work">出勤</option>
+          <option value="custom">カスタム時間</option>
+        </select>
+        <span class="custom-time-fields hidden flex gap-1" style="align-items:center;">
+          <input type="time" class="form-control new-spec-start" value="10:00" style="width:90px;">
+          〜
+          <input type="time" class="form-control new-spec-end"   value="18:00" style="width:90px;">
+        </span>
+        <button class="btn btn-outline btn-sm" onclick="addSpecificDate(${sidJs})">＋ 追加</button>
+      </div>
+    </div>`;
+  }).join('') + `</div>`;
 }
 
-function toggleCustomTime() {
-  const t = document.getElementById('new-spec-type').value;
-  document.getElementById('custom-time-fields').classList.toggle('hidden', t !== 'custom');
+function toggleCustomTime(selectEl) {
+  const card = selectEl.closest('.shift-request-card');
+  card.querySelector('.custom-time-fields').classList.toggle('hidden', selectEl.value !== 'custom');
 }
 
-function addSpecificDate() {
+function addSpecificDate(staffId) {
   const month   = document.getElementById('shift-month-sel').value;
-  const staffId = document.getElementById('shift-req-staff-sel').value;
   if (!staffId || !month) return;
+  const card = getShiftRequestCard(staffId);
+  if (!card) return;
 
-  const date  = document.getElementById('new-spec-date').value;
-  const type  = document.getElementById('new-spec-type').value;
-  const start = document.getElementById('new-spec-start')?.value || '';
-  const end   = document.getElementById('new-spec-end')?.value   || '';
+  const date  = card.querySelector('.new-spec-date').value;
+  const type  = card.querySelector('.new-spec-type').value;
+  const start = card.querySelector('.new-spec-start')?.value || '';
+  const end   = card.querySelector('.new-spec-end')?.value   || '';
 
   const reqs = loadShiftRequests();
   if (!reqs[month]) reqs[month] = {};
@@ -4509,9 +4555,8 @@ function addSpecificDate() {
   renderShiftRequestForm();
 }
 
-function removeSpecificDate(idx) {
+function removeSpecificDate(staffId, idx) {
   const month   = document.getElementById('shift-month-sel').value;
-  const staffId = document.getElementById('shift-req-staff-sel').value;
   if (!staffId || !month) return;
   const reqs = loadShiftRequests();
   const req  = (reqs[month] || {})[staffId];
@@ -4527,40 +4572,42 @@ function removeSpecificDate(idx) {
 /** Save the current form values to cache + GAS */
 function saveShiftRequestForm() {
   const month   = document.getElementById('shift-month-sel').value;
-  const staffId = document.getElementById('shift-req-staff-sel').value;
-  if (!staffId || !month) { showAlert('alert-shift', 'スタッフと対象月を選択してください', 'error'); return; }
-
-  const preferDows = [...document.querySelectorAll('input[name="prefer-dow"]:checked')].map(el => Number(el.value));
-  const offDows    = [...document.querySelectorAll('input[name="off-dow"]:checked')].map(el => Number(el.value));
+  if (!month) { showAlert('alert-shift', '対象月を選択してください', 'error'); return; }
 
   const reqs = loadShiftRequests();
   if (!reqs[month]) reqs[month] = {};
-  const existing = reqs[month][staffId] || {};
-  const id = existing.id || `req_${staffId}_${month}`;
-
-  const record = {
-    id,
-    preferDaysOfWeek: preferDows,
-    offDaysOfWeek:    offDows,
-    specificDates:    parseJsonSafe(existing.specificDates, []),
-  };
-  reqs[month][staffId] = record;
+  const rows = [];
+  for (const card of document.querySelectorAll('.shift-request-card')) {
+    const staffId = card.dataset.staffId;
+    const preferDows = [...card.querySelectorAll('.prefer-dows input[type="checkbox"]:checked')].map(el => Number(el.value));
+    const offDows    = [...card.querySelectorAll('.off-dows input[type="checkbox"]:checked')].map(el => Number(el.value));
+    const existing = reqs[month][staffId] || {};
+    const id = existing.id || `req_${staffId}_${month}`;
+    const record = {
+      id,
+      preferDaysOfWeek: preferDows,
+      offDaysOfWeek:    offDows,
+      specificDates:    parseJsonSafe(existing.specificDates, []),
+    };
+    reqs[month][staffId] = record;
+    rows.push({
+      id,
+      staffId,
+      yearMonth:        month,
+      preferDaysOfWeek: JSON.stringify(preferDows),
+      offDaysOfWeek:    JSON.stringify(offDows),
+      specificDates:    JSON.stringify(record.specificDates),
+    });
+  }
   saveShiftRequests(reqs);
 
   // Sync to GAS
   showSyncToast('同期中...', 'syncing');
-  gasRequest('saveShiftRequest', {
-    id,
-    staffId,
-    yearMonth:        month,
-    preferDaysOfWeek: JSON.stringify(preferDows),
-    offDaysOfWeek:    JSON.stringify(offDows),
-    specificDates:    JSON.stringify(record.specificDates),
-  })
-    .then(() => showSyncToast('シフト希望を保存しました', 'ok', 2000))
+  gasRequest('saveBulkShiftRequests', { rows: JSON.stringify(rows), replaceMonth: month })
+    .then(() => showSyncToast('全スタッフのシフト希望を保存しました', 'ok', 2000))
     .catch(err => showGasError('シフト希望保存エラー: ' + err.message));
 
-  showAlert('alert-shift', 'シフト希望を保存しました');
+  showAlert('alert-shift', '全スタッフのシフト希望を保存しました');
 }
 
 /* ============================================================
@@ -4572,6 +4619,7 @@ const CONSTRAINT_TYPE_LABELS = {
   not_alone:    '単独出勤不可',
   prefer_day_off: '定休日優先',
   min_staff:    '最低出勤人数',
+  max_staff_by_dow: '曜日別最大人数',
 };
 
 function renderConstraintPanel() {
@@ -4644,8 +4692,17 @@ function renderConstraintParamUI() {
       <select class="form-control" id="cp-daytype" style="width:100px;">
         <option value="all">全日</option>
         <option value="weekday">平日のみ</option>
-        <option value="weekend">土日のみ</option>
+        <option value="weekend">土日祝のみ</option>
       </select>
+    </div>`;
+  } else if (type === 'max_staff_by_dow') {
+    ui.innerHTML = `<div class="form-row">
+      <label class="form-label mb-0">曜日別最大人数</label>
+      <div class="dow-number-grid">
+        ${DOW_NAMES.map((n, i) => `<label>${n}
+          <input type="number" class="form-control cp-max-dow" data-dow="${i}" value="${i === 0 || i === 6 ? 5 : 3}" min="1" max="20">
+        </label>`).join('')}
+      </div>
     </div>`;
   } else {
     ui.innerHTML = '';
@@ -4679,6 +4736,13 @@ function addConstraint() {
       min:     Number(document.getElementById('cp-min')?.value || 2),
       dayType: document.getElementById('cp-daytype')?.value || 'all',
     };
+  } else if (type === 'max_staff_by_dow') {
+    const maxByDow = {};
+    for (const input of document.querySelectorAll('.cp-max-dow')) {
+      const n = Number(input.value);
+      if (n > 0) maxByDow[input.dataset.dow] = n;
+    }
+    params = { maxByDow };
   }
 
   const id = `con_${month}_${Date.now()}`;
