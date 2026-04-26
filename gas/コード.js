@@ -71,6 +71,33 @@ function getSheet(name) {
   return ss.getSheetByName(name) || ss.insertSheet(name);
 }
 
+function normalizeSheetDate(value) {
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  const s = String(value || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  return s;
+}
+
+function shiftMonthOf(value) {
+  return normalizeSheetDate(value).slice(0, 7);
+}
+
+function normalizeShiftRows(rows) {
+  return (rows || []).map(r => [
+    r[0] || '',
+    r[1] || '',
+    normalizeSheetDate(r[2]),
+    r[3] || false,
+    r[4] || '',
+  ]);
+}
+
+function prepareShiftDateColumn(sheet, rowCount) {
+  sheet.getRange(1, 3, Math.max(rowCount, 1), 1).setNumberFormat('@');
+}
+
 function getAllData() {
   const staffSheet      = getSheet(SHEET_NAME_STAFF);
   const attendanceSheet = getSheet(SHEET_NAME_ATTENDANCE);
@@ -80,7 +107,7 @@ function getAllData() {
   return {
     staff:        staffSheet.getLastRow()      > 0 ? staffSheet.getDataRange().getValues()      : [],
     attendance:   attendanceSheet.getLastRow() > 0 ? attendanceSheet.getDataRange().getValues() : [],
-    shift:        shiftSheet.getLastRow()      > 0 ? shiftSheet.getDataRange().getValues()      : [],
+    shift:        shiftSheet.getLastRow()      > 0 ? normalizeShiftRows(shiftSheet.getDataRange().getValues()) : [],
     shiftRequest: reqSheet.getLastRow()        > 0 ? reqSheet.getDataRange().getValues()        : [],
     softConstraint: conSheet.getLastRow()      > 0 ? conSheet.getDataRange().getValues()        : [],
   };
@@ -158,12 +185,13 @@ function saveBulkShifts(data) {
 
     if (replaceMonth) {
       const remaining = existing
-        .filter(r => String(r[2] || '').slice(0, 7) !== replaceMonth)
-        .map(r => [r[0] || '', r[1] || '', r[2] || '', r[3] || false, r[4] || '']);
-      const newRows = rows.map(r => [r.id, r.staffId, r.date, r.isConfirmed, r.shiftPattern || '']);
+        .filter(r => shiftMonthOf(r[2]) !== replaceMonth)
+        .map(r => [r[0] || '', r[1] || '', normalizeSheetDate(r[2]), r[3] || false, r[4] || '']);
+      const newRows = rows.map(r => [r.id, r.staffId, normalizeSheetDate(r.date), r.isConfirmed, r.shiftPattern || '']);
       const nextRows = remaining.concat(newRows);
       sheet.clearContents();
       if (nextRows.length > 0) {
+        prepareShiftDateColumn(sheet, nextRows.length);
         sheet.getRange(1, 1, nextRows.length, 5).setValues(nextRows);
       }
       return { success: true };
@@ -171,7 +199,8 @@ function saveBulkShifts(data) {
 
     for (const r of rows) {
       const idx = existing.findIndex(x => x[0] === r.id);
-      const row = [r.id, r.staffId, r.date, r.isConfirmed, r.shiftPattern || ''];
+      const row = [r.id, r.staffId, normalizeSheetDate(r.date), r.isConfirmed, r.shiftPattern || ''];
+      prepareShiftDateColumn(sheet, Math.max(sheet.getLastRow() + 1, idx + 1, 1));
       if (idx >= 0) {
         sheet.getRange(idx + 1, 1, 1, row.length).setValues([row]);
         existing[idx] = row; // keep in sync for subsequent findIndex
@@ -196,11 +225,12 @@ function deleteMonthShifts(data) {
     const lastRow = sheet.getLastRow();
     if (lastRow === 0) return { success: true };
     const existing = sheet.getDataRange().getValues()
-      .filter(r => String(r[2] || '').slice(0, 7) !== month);
+      .filter(r => shiftMonthOf(r[2]) !== month);
     sheet.clearContents();
     if (existing.length > 0) {
+      prepareShiftDateColumn(sheet, existing.length);
       sheet.getRange(1, 1, existing.length, Math.max(5, existing[0].length)).setValues(
-        existing.map(r => [r[0] || '', r[1] || '', r[2] || '', r[3] || false, r[4] || ''])
+        existing.map(r => [r[0] || '', r[1] || '', normalizeSheetDate(r[2]), r[3] || false, r[4] || ''])
       );
     }
     return { success: true };
@@ -221,7 +251,8 @@ function saveBulkShiftsLegacy(data) {
 
   for (const r of rows) {
     const idx = existing.findIndex(x => x[0] === r.id);
-    const row = [r.id, r.staffId, r.date, r.isConfirmed, r.shiftPattern || ''];
+    const row = [r.id, r.staffId, normalizeSheetDate(r.date), r.isConfirmed, r.shiftPattern || ''];
+    prepareShiftDateColumn(sheet, Math.max(sheet.getLastRow() + 1, idx + 1, 1));
     if (idx >= 0) {
       sheet.getRange(idx + 1, 1, 1, row.length).setValues([row]);
       existing[idx] = row; // keep in sync for subsequent findIndex
@@ -239,7 +270,8 @@ function saveShift(data) {
   const lastRow = sheet.getLastRow();
   const values = lastRow > 0 ? sheet.getDataRange().getValues() : [];
   const idx = values.findIndex(r => r[0] === data.id);
-  const row = [data.id, data.staffId, data.date, data.isConfirmed, data.shiftPattern || ''];
+  const row = [data.id, data.staffId, normalizeSheetDate(data.date), data.isConfirmed, data.shiftPattern || ''];
+  prepareShiftDateColumn(sheet, Math.max(lastRow + 1, idx + 1, 1));
   if (idx >= 0) {
     sheet.getRange(idx + 1, 1, 1, row.length).setValues([row]);
   } else {
