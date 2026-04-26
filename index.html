@@ -1129,6 +1129,7 @@
     .pat-badge.osaban   { background: #ede7f6; color: #512da8; }
     .pat-badge.miura    { background: #e8f5e9; color: #2e7d32; }
     .pat-badge.custom   { background: #fff3e0; color: #e65100; }
+    .pat-time { font-size: 0.6rem; opacity: 0.85; margin-left: 2px; white-space: nowrap; }
 
     /* Shift warnings bar */
     .shift-warning-bar {
@@ -4423,12 +4424,14 @@ function buildCalendarHTML(yr, mo, shiftData, isConfirmed) {
       const patObj  = dayPats[sid] || {};
       const patName = (typeof patObj === 'string') ? patObj : (patObj.pattern || '遅番');
       const patInfo = SHIFT_PATTERNS[patName] || SHIFT_PATTERNS['遅番'];
-      const badge   = `<span class="pat-badge ${patInfo.cls}"
-                             onclick="event.stopPropagation();cycleStaffPattern('${ymd}','${sid}')"
-                             title="クリックで番種変更">${patInfo.label}</span>`;
       const timeStr = patObj.customStart
         ? `${patObj.customStart}–${patObj.customEnd}`
         : `${patInfo.start}–${patInfo.end}`;
+      const timeSpan = timeStr && timeStr !== '–'
+        ? `<span class="pat-time">${timeStr}</span>` : '';
+      const badge   = `<span class="pat-badge ${patInfo.cls}"
+                             onclick="event.stopPropagation();cycleStaffPattern('${ymd}','${sid}')"
+                             title="クリックで番種変更">${patInfo.label}${timeSpan}</span>`;
 
       if (isConfirmed) {
         return `<div class="shift-tag" style="${style}" title="${escHtml(patName)} ${timeStr}">
@@ -5713,6 +5716,21 @@ function gasSyncLog(l) {
     .catch(err => showGasError('打刻保存エラー: ' + err.message));
 }
 
+async function gasPostBulk(action, payload = {}) {
+  const body = JSON.stringify({ action, ...payload });
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    body,
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    redirect: 'follow',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
 /** Sync all shift assignments for a given month (fire-and-forget) */
 function gasSyncMonthShifts(month) {
   const shifts = loadShifts();
@@ -5731,7 +5749,7 @@ function gasSyncMonthShifts(month) {
   }
   if (rows.length === 0) { showSyncToast('保存完了', 'ok', 1500); return; }
 
-  gasRequest('saveBulkShifts', { rows: JSON.stringify(rows), replaceMonth: month })
+  gasPostBulk('saveBulkShifts', { rows: JSON.stringify(rows), replaceMonth: month })
     .then(() => showSyncToast('シフト保存完了', 'ok', 2500))
     .catch(err => showGasError('シフト保存エラー: ' + err.message));
 }
