@@ -1808,7 +1808,7 @@ function calcPayDetails(log, staff) {
     r.dayRate     = dayRate;
     r.appliedRate = appliedRate;
     r.basicPay    = Math.floor(appliedRate * netH);
-    r.overtimePay = Math.floor(appliedRate * 1.25 * overH);
+    r.overtimePay = Math.floor(appliedRate * 0.25 * overH);
     r.nightPay    = Math.floor(appliedRate * 0.25 * nightH);
   }
   r.dayTotal = r.basicPay + r.overtimePay + r.nightPay + transport;
