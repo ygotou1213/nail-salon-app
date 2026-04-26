@@ -1542,15 +1542,16 @@
       .share-cal-staff .share-staff-row {
         grid-template-columns: minmax(0, 1fr);
         gap: 2px;
-        font-size: 0.68rem;
+        font-size: 0.66rem;
         padding: 3px 4px;
       }
       .share-cal-staff .share-staff-meta {
         justify-content: flex-start;
         gap: 3px;
-        white-space: normal;
+        white-space: nowrap;
       }
-      .share-cal-staff .share-staff-time { font-size: 0.62rem; }
+      .share-cal-staff .share-staff-name { overflow-wrap: normal; }
+      .share-cal-staff .share-staff-time { font-size: 0.6rem; white-space: nowrap; }
       .share-cal-staff .share-pattern-badge {
         min-width: 15px;
         height: 15px;
@@ -4830,13 +4831,13 @@ async function renderShiftShareView(month) {
     } else {
       time = name;
     }
-    return { label, time, compactTime: time.replace(':00', '').replace(':00', '') };
+    return { label, time, compactTime: time.replaceAll(':00', '').replace('〜', '-') };
   }
 
   function shortStaffName(staff, fallback) {
     const name = staff ? staff.name : fallback;
-    const compact = String(name || '').replace(/\s+/g, '');
-    return compact.length > 4 ? compact.slice(0, 4) : compact;
+    const base = String(name || '').trim().split(/\s+/)[0] || String(name || '').replace(/\s+/g, '');
+    return base.length > 2 ? base.slice(0, 2) : base;
   }
 
   let selectedStaff = null;
@@ -5100,18 +5101,6 @@ function renderShiftRequestForm() {
       <div class="req-section-title">出勤希望曜日</div>
       <div class="prefer-dows">${dowCheckGrid(`prefer-dow-${staff.id}`, prefer)}</div>
 
-      <div class="req-section-title">休み希望曜日</div>
-      <div class="off-dows">${dowCheckGrid(`off-dow-${staff.id}`, off)}</div>
-
-      <div class="req-section-title">候補日から1日だけ出勤</div>
-      <div class="choice-group-list">${choiceGroupsHtml}</div>
-      <div class="flex gap-2 flex-wrap mt-2" style="align-items:center;">
-        <select class="form-control choice-date-a" style="width:110px;">${dateOptions}</select>
-        <span class="text-sm text-muted">or</span>
-        <select class="form-control choice-date-b" style="width:110px;">${dateOptions}</select>
-        <button class="btn btn-outline btn-sm" onclick="addChoiceDateGroup(${sidJs})">＋ 追加</button>
-      </div>
-
       <div class="req-section-title">曜日ごとの時短希望</div>
       <div class="weekday-time-grid">
         ${DOW_NAMES.map((n, i) => {
@@ -5126,6 +5115,18 @@ function renderShiftRequestForm() {
             </div>
           </div>`;
         }).join('')}
+      </div>
+
+      <div class="req-section-title">休み希望曜日</div>
+      <div class="off-dows">${dowCheckGrid(`off-dow-${staff.id}`, off)}</div>
+
+      <div class="req-section-title">候補日から1日だけ出勤</div>
+      <div class="choice-group-list">${choiceGroupsHtml}</div>
+      <div class="flex gap-2 flex-wrap mt-2" style="align-items:center;">
+        <select class="form-control choice-date-a" style="width:110px;">${dateOptions}</select>
+        <span class="text-sm text-muted">or</span>
+        <select class="form-control choice-date-b" style="width:110px;">${dateOptions}</select>
+        <button class="btn btn-outline btn-sm" onclick="addChoiceDateGroup(${sidJs})">＋ 追加</button>
       </div>
 
       <div class="req-section-title">特定日の個別指定</div>
