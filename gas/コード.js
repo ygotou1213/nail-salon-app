@@ -319,6 +319,12 @@ function saveBulkShiftRequests(data) {
         existing.push(row);
       }
     }
+    // Force yearMonth column (col 3) to plain text so Sheets won't
+    // auto-convert "YYYY-MM" strings into Date serial numbers.
+    const totalRows = sheet.getLastRow();
+    if (totalRows > 0) {
+      sheet.getRange(1, 3, totalRows, 1).setNumberFormat('@');
+    }
     return { success: true };
   } finally {
     lock.releaseLock();
@@ -346,6 +352,11 @@ function saveConstraint(data) {
     sheet.getRange(idx + 1, 1, 1, row.length).setValues([row]);
   } else {
     sheet.appendRow(row);
+  }
+  // Force yearMonth column (col 2) to plain text.
+  const totalRows = sheet.getLastRow();
+  if (totalRows > 0) {
+    sheet.getRange(1, 2, totalRows, 1).setNumberFormat('@');
   }
   return { success: true };
 }

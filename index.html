@@ -5591,9 +5591,17 @@ function parseShiftRequestRows(rows) {
   const result = {};
   for (const r of rows) {
     if (r[0] == null || String(r[0]).trim() === '') continue;
-    const id        = String(r[0]);
-    const staffId   = String(r[1]);
-    const yearMonth = String(r[2]);
+    const id      = String(r[0]);
+    const staffId = String(r[1]);
+    // Google Sheets auto-converts "YYYY-MM" to a Date; GAS then returns an ISO
+    // string like "2026-05-31T15:00:00.000Z". Recover YYYY-MM from the ID
+    // (format: req_<staffId>_YYYY-MM) as a reliable fallback.
+    let yearMonth = String(r[2]);
+    if (!/^\d{4}-\d{2}$/.test(yearMonth)) {
+      const m = id.match(/_(\d{4}-\d{2})$/);
+      if (!m) continue;
+      yearMonth = m[1];
+    }
     if (!result[yearMonth]) result[yearMonth] = {};
     result[yearMonth][staffId] = {
       id,
@@ -5616,8 +5624,15 @@ function parseSoftConstraintRows(rows) {
   const result = {};
   for (const r of rows) {
     if (r[0] == null || String(r[0]).trim() === '') continue;
-    const id        = String(r[0]);
-    const yearMonth = String(r[1]);
+    const id = String(r[0]);
+    // Same Sheets date-conversion issue as シフト希望.
+    // ID format: con_YYYY-MM_<timestamp> — extract YYYY-MM with regex.
+    let yearMonth = String(r[1]);
+    if (!/^\d{4}-\d{2}$/.test(yearMonth)) {
+      const m = id.match(/_(\d{4}-\d{2})_/) || id.match(/_(\d{4}-\d{2})$/);
+      if (!m) continue;
+      yearMonth = m[1];
+    }
     if (!result[yearMonth]) result[yearMonth] = [];
     result[yearMonth].push({
       id,
