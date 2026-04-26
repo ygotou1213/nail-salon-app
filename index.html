@@ -5776,8 +5776,9 @@ function parseShiftRows(rows) {
     if (!result[month].patterns[date]) result[month].patterns[date] = {};
     if (!result[month].days[date].includes(staffId)) {
       result[month].days[date].push(staffId);
-      result[month].patterns[date][staffId] = { pattern };
     }
+    const existingPattern = result[month].patterns[date][staffId];
+    if (!existingPattern || isConfirmed) result[month].patterns[date][staffId] = { pattern };
     if (isConfirmed) result[month].isConfirmed = true;
   }
   return result;
