@@ -2500,10 +2500,10 @@ function calcPayDetails(log, staff) {
     // Monthly salary: daily portion = monthlySalary / weekdays in that month
     const d = new Date(log.clockIn);
     const wdays = countWeekdays(d.getFullYear(), d.getMonth() + 1);
-    r.basicPay    = Math.floor((staff.monthlySalary || 0) / wdays);
+    r.basicPay    = Math.round((staff.monthlySalary || 0) / wdays);
     r.overtimePay = 0;
     r.nightPay    = 0;
-    r.baseRate    = staff.monthlySalary;  // show monthly salary as "基本"
+    r.baseRate    = null;  // 月給スタッフは時給列を表示しない
     r.dayRate     = null;
     r.appliedRate = null;
   } else {
@@ -3976,7 +3976,7 @@ function generatePayslip() {
       <table class="ps-table">
         <thead><tr><th colspan="2" class="ps-section-hd">支　給</th></tr></thead>
         <tbody>
-          <tr><td class="ps-item-lbl">基本給</td><td class="ps-item-val num">${fmtYen(basicPay)}</td></tr>
+          <tr><td class="ps-item-lbl">基本給${isMonthlyStaff ? `<span class="ps-na-badge">月給制</span>` : ''}</td><td class="ps-item-val num">${fmtYen(basicPay)}</td></tr>
           <tr><td class="ps-item-lbl">残業手当</td><td class="ps-item-val num">${fmtYen(overtimePay)}</td></tr>
           ${nightRow}
           <tr><td class="ps-item-lbl">手当・その他</td><td class="ps-item-val">${editInput('ps-allowance', allowance, false)}</td></tr>
@@ -4039,7 +4039,7 @@ function generatePayslip() {
       <table>
         <thead><tr>
           <th>日付</th><th>勤務時間帯</th><th>実働時間</th>
-          <th class="num">給与</th><th class="num">交通費</th><th class="num">小計</th>
+          <th class="num">${isMonthlyStaff ? '日割給与' : '給与'}</th><th class="num">交通費</th><th class="num">小計</th>
         </tr></thead>
         <tbody>${dayRows}</tbody>
       </table>
