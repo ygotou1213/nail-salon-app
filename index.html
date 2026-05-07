@@ -3927,15 +3927,20 @@ function generatePayslip() {
   };
 
   // Daily rows
+  const wdaysForNote = countWeekdays(yr, mo);
+  const dailyUnitNote = isMonthlyStaff
+    ? `月額¥${(s.monthlySalary||0).toLocaleString('ja-JP')} ÷ ${wdaysForNote}日（${mo}月平日数）= ¥${Math.round((s.monthlySalary||0)/wdaysForNote).toLocaleString('ja-JP')}/日`
+    : '';
   const dayRows = logs.length > 0 ? logs.map(l => {
     const pd = calcPayDetails(l, s);
     const d  = new Date(l.clockIn);
     const w  = (pd.basicPay||0) + (pd.overtimePay||0) + (pd.nightPay||0);
     const t  = calcTransport(l, s);
+    const hoursCell = isMonthlyStaff ? '—' : fmtHours(pd.netH||0);
     return `<tr>
       <td>${d.getMonth()+1}/${d.getDate()}</td>
       <td>${fmtTime(l.clockIn)}〜${fmtTime(l.clockOut)}</td>
-      <td>${fmtHours(pd.netH||0)}</td>
+      <td>${hoursCell}</td>
       <td class="num">${fmtYen(w)}</td>
       <td class="num">${fmtYen(t)}</td>
       <td class="num">${fmtYen(w+t)}</td>
@@ -4034,7 +4039,7 @@ function generatePayslip() {
       <button class="btn btn-primary btn-sm"  onclick="savePayslipData()">💾 保存</button>
     </div>
 
-    <div class="payslip-detail-title" style="margin-top:20px;">日別明細</div>
+    <div class="payslip-detail-title" style="margin-top:20px;">日別明細${dailyUnitNote ? `<span style="font-size:0.72rem;font-weight:400;color:#888;margin-left:10px;">※ ${dailyUnitNote}</span>` : ''}</div>
     <div class="table-wrap">
       <table>
         <thead><tr>
