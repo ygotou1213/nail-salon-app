@@ -2021,7 +2021,7 @@
       </div>
       <div class="form-group hidden" id="staff-monthly-group">
         <label>月給（円）<span style="color:var(--rose)">*</span></label>
-        <input type="number" class="form-control" id="staff-monthly-input" placeholder="250000" min="0">
+        <input type="number" class="form-control" id="staff-monthly-input" placeholder="250000" min="0" oninput="autoFillStdSalary()">
       </div>
       <div class="form-group">
         <label>基本交通費（円/日）</label>
@@ -2076,7 +2076,7 @@
     <div class="form-group">
       <label>標準報酬月額（円）</label>
       <input type="number" class="form-control" id="staff-std-salary-input" placeholder="例：200000" min="0">
-      <div class="form-hint">健康保険・厚生年金の計算基礎</div>
+      <div class="form-hint" id="std-salary-hint">健康保険・厚生年金の計算基礎。月給入力時に自動セット（変更可）</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="form-group">
@@ -2347,6 +2347,30 @@ function calcDeductions(staff, gross) {
   const incomeTax   = calcIncomeTax(taxable, deps);
 
   return { health, care, pension, employ, incomeTax, socialTotal };
+}
+
+/**
+ * 報酬月額から標準報酬月額を返す（協会けんぽ / 厚生年金 2024年度等級表）
+ * 厚生年金の上限等級（32等級・¥620,000）まで対応。
+ */
+function lookupStdSalary(monthly) {
+  if (!monthly || monthly <= 0) return null;
+  // [下限（以上）, 標準報酬月額]
+  const TABLE = [
+    [605000, 620000], [575000, 590000], [545000, 560000], [515000, 530000],
+    [485000, 500000], [455000, 470000], [425000, 440000], [395000, 410000],
+    [370000, 380000], [350000, 360000], [330000, 340000], [310000, 320000],
+    [290000, 300000], [270000, 280000], [250000, 260000], [230000, 240000],
+    [210000, 220000], [195000, 200000], [185000, 190000], [175000, 180000],
+    [165000, 170000], [155000, 160000], [146000, 150000], [138000, 142000],
+    [130000, 134000], [122000, 126000], [114000, 118000], [107000, 110000],
+    [101000, 104000], [ 93000,  98000], [ 83000,  88000], [ 73000,  78000],
+    [ 63000,  68000], [     0,  58000],
+  ];
+  for (const [lower, std] of TABLE) {
+    if (monthly >= lower) return std;
+  }
+  return 58000;
 }
 
 /**
@@ -3023,6 +3047,18 @@ function renderStaffTab() {
       </div>
     </div>`;
   }).join('');
+}
+
+function autoFillStdSalary() {
+  const monthly = parseInt(document.getElementById('staff-monthly-input').value || '0', 10);
+  const stdInput = document.getElementById('staff-std-salary-input');
+  const hint = document.getElementById('std-salary-hint');
+  if (!monthly) return;
+  const std = lookupStdSalary(monthly);
+  if (std) {
+    stdInput.value = std;
+    if (hint) hint.textContent = `等級表より自動セット（¥${std.toLocaleString()}）。変更可。`;
+  }
 }
 
 function openStaffModal(id) {
