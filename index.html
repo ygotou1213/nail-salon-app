@@ -3878,8 +3878,7 @@ function generatePayslip() {
   const isMonthlyStaff = s.payType === 'monthly' && s.monthlySalary;
   let basicPay, overtimePay, nightPay;
   if (isMonthlyStaff) {
-    const wdays = countWeekdays(yr, mo);
-    basicPay    = workDays >= wdays ? s.monthlySalary : Math.round(s.monthlySalary / wdays * workDays);
+    basicPay    = s.monthlySalary;  // 月給は日割せず月額固定
     overtimePay = 0; nightPay = 0;
   } else {
     const details = logs.map(l => calcPayDetails(l, s));
@@ -3936,11 +3935,10 @@ function generatePayslip() {
     const d  = new Date(l.clockIn);
     const w  = (pd.basicPay||0) + (pd.overtimePay||0) + (pd.nightPay||0);
     const t  = calcTransport(l, s);
-    const hoursCell = isMonthlyStaff ? '—' : fmtHours(pd.netH||0);
     return `<tr>
       <td>${d.getMonth()+1}/${d.getDate()}</td>
       <td>${fmtTime(l.clockIn)}〜${fmtTime(l.clockOut)}</td>
-      <td>${hoursCell}</td>
+      <td>${fmtHours(pd.netH||0)}</td>
       <td class="num">${fmtYen(w)}</td>
       <td class="num">${fmtYen(t)}</td>
       <td class="num">${fmtYen(w+t)}</td>
