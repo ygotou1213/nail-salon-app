@@ -3928,20 +3928,28 @@ function generatePayslip() {
 
   // ── Saved overrides ──
   const psKey  = `${staffId}_${month}`;
-  const saved  = loadPayslips()[psKey] || {};
+  const allPs  = loadPayslips();
+  const saved  = allPs[psKey] || {};
+
+  // 前月の手動修正値を引き継ぐ（当月に保存がない控除項目のみ）
+  const [pyr, pmo] = month.split('-').map(Number);
+  const prevDate   = new Date(pyr, pmo - 2, 1);
+  const prevKey    = `${staffId}_${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`;
+  const prevSaved  = allPs[prevKey] || {};
+
   const allowance = saved.allowance ?? 0;
 
   const baseGross = basicPay + overtimePay + nightPay + commute;
   const gross     = baseGross + allowance;
 
-  // ── Deductions (auto then override) ──
+  // ── Deductions: 当月保存値 → 前月保存値（引継ぎ） → 自動計算 の優先順位 ──
   const autoDed     = calcDeductions(s, gross);
-  const health      = saved.healthIns      ?? autoDed.health;
-  const care        = saved.careIns        ?? autoDed.care;
-  const pension     = saved.pension        ?? autoDed.pension;
-  const employ      = saved.employmentIns  ?? autoDed.employ;
-  const incomeTax   = saved.incomeTax      ?? autoDed.incomeTax;
-  const residentTax = saved.residentTax    ?? 0;
+  const health      = saved.healthIns      ?? prevSaved.healthIns      ?? autoDed.health;
+  const care        = saved.careIns        ?? prevSaved.careIns        ?? autoDed.care;
+  const pension     = saved.pension        ?? prevSaved.pension        ?? autoDed.pension;
+  const employ      = saved.employmentIns  ?? prevSaved.employmentIns  ?? autoDed.employ;
+  const incomeTax   = saved.incomeTax      ?? prevSaved.incomeTax      ?? autoDed.incomeTax;
+  const residentTax = saved.residentTax    ?? prevSaved.residentTax    ?? 0;
 
   const totalDed   = health + care + pension + employ + incomeTax + residentTax;
   const netPay     = gross - totalDed;
