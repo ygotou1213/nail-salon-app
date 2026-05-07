@@ -1748,7 +1748,10 @@
   <!-- ==================== ATTENDANCE TAB ==================== -->
   <section id="tab-attendance" class="section">
     <div class="card">
-      <div class="card-title">勤怠一覧・修正</div>
+      <div class="flex items-center justify-between mb-3">
+        <div class="card-title" style="margin:0;padding:0;border:none;">勤怠一覧・修正</div>
+        <button class="btn btn-primary btn-sm" onclick="openAddAttendanceModal()">＋ 打刻追加</button>
+      </div>
 
       <!-- Filters -->
       <div class="filter-row">
@@ -2130,6 +2133,44 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-edit')">キャンセル</button>
       <button class="btn btn-primary" onclick="saveEditFromModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Attendance Modal -->
+<div class="modal-overlay" id="modal-add-attendance">
+  <div class="modal">
+    <div class="modal-title">➕ 打刻追加</div>
+    <div id="alert-add-attendance"></div>
+    <div class="form-group">
+      <label>スタッフ <span style="color:var(--rose)">*</span></label>
+      <select class="form-control" id="add-att-staff"></select>
+    </div>
+    <div class="form-group">
+      <label>出勤時刻 <span style="color:var(--rose)">*</span></label>
+      <input type="datetime-local" class="form-control" id="add-att-clock-in">
+    </div>
+    <div class="form-group">
+      <label>退勤時刻（空欄＝勤務中）</label>
+      <input type="datetime-local" class="form-control" id="add-att-clock-out">
+    </div>
+    <div class="divider"></div>
+    <p class="text-sm text-muted mb-2">※修正時給・修正給与はどちらか一方のみ入力可</p>
+    <div class="form-group">
+      <label>修正時給（円）</label>
+      <input type="number" class="form-control" id="add-att-hourly" placeholder="空欄=基本時給を使用" min="0">
+    </div>
+    <div class="form-group">
+      <label>修正給与（円）</label>
+      <input type="number" class="form-control" id="add-att-wage" placeholder="空欄=時給から自動計算" min="0">
+    </div>
+    <div class="form-group">
+      <label>修正交通費（円）</label>
+      <input type="number" class="form-control" id="add-att-transport" placeholder="空欄=基本交通費を使用" min="0">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-attendance')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveAddAttendanceFromModal()">追加</button>
     </div>
   </div>
 </div>
@@ -3272,6 +3313,7 @@ function renderAttendance() {
         <td class="num">${working ? '—' : hY(pd.dayTotal)}</td>
         <td>
           <button class="btn btn-outline btn-sm" onclick="openEditModal('${l.id}')">修正</button>
+          <button class="btn btn-danger btn-sm"  onclick="deleteAttendanceLog('${l.id}')" style="margin-left:4px;">削除</button>
         </td>
       </tr>`;
   }).join('');
@@ -3707,6 +3749,99 @@ function saveEditFromModal() {
   renderClockTab();
   showAlert('alert-attendance', '勤怠データを修正しました');
   gasSyncLog(logs[idx]);
+}
+
+function openAddAttendanceModal() {
+  const staffList = loadStaff().filter(s => s.status === '在籍中');
+  const sel = document.getElementById('add-att-staff');
+  sel.innerHTML = staffList.map(s =>
+    `<option value="${s.id}">${escHtml(s.name)}</option>`
+  ).join('');
+
+  document.getElementById('alert-add-attendance').innerHTML = '';
+  document.getElementById('add-att-clock-in').value    = '';
+  document.getElementById('add-att-clock-out').value   = '';
+  document.getElementById('add-att-hourly').value      = '';
+  document.getElementById('add-att-wage').value        = '';
+  document.getElementById('add-att-transport').value   = '';
+
+  openModal('modal-add-attendance');
+}
+
+function saveAddAttendanceFromModal() {
+  const staffId    = document.getElementById('add-att-staff').value;
+  const clockInVal = document.getElementById('add-att-clock-in').value;
+  const clockOutVal= document.getElementById('add-att-clock-out').value;
+  const hourlyRaw  = document.getElementById('add-att-hourly').value.trim();
+  const wageRaw    = document.getElementById('add-att-wage').value.trim();
+  const transRaw   = document.getElementById('add-att-transport').value.trim();
+
+  if (!staffId) {
+    showAlert('alert-add-attendance', 'スタッフを選択してください', 'error', 0); return;
+  }
+  if (!clockInVal) {
+    showAlert('alert-add-attendance', '出勤時刻を入力してください', 'error', 0); return;
+  }
+  if (clockOutVal && new Date(clockOutVal) <= new Date(clockInVal)) {
+    showAlert('alert-add-attendance', '退勤時刻は出勤時刻より後に設定してください', 'error', 0); return;
+  }
+  if (hourlyRaw !== '' && wageRaw !== '') {
+    showAlert('alert-add-attendance', '修正時給と修正給与は同時に入力できません', 'error', 0); return;
+  }
+  if (hourlyRaw !== '' && (isNaN(+hourlyRaw) || +hourlyRaw < 0)) {
+    showAlert('alert-add-attendance', '修正時給は0以上の数値を入力してください', 'error', 0); return;
+  }
+  if (wageRaw !== '' && (isNaN(+wageRaw) || +wageRaw < 0)) {
+    showAlert('alert-add-attendance', '修正給与は0以上の数値を入力してください', 'error', 0); return;
+  }
+  if (transRaw !== '' && (isNaN(+transRaw) || +transRaw < 0)) {
+    showAlert('alert-add-attendance', '交通費は0以上の数値を入力してください', 'error', 0); return;
+  }
+
+  const newLog = {
+    id:                 uid(),
+    staffId,
+    clockIn:            new Date(clockInVal).toISOString(),
+    clockOut:           clockOutVal ? new Date(clockOutVal).toISOString() : null,
+    adjustedHourlyRate: hourlyRaw !== '' ? parseFloat(hourlyRaw) : null,
+    adjustedWage:       wageRaw   !== '' ? parseFloat(wageRaw)   : null,
+    adjustedTransport:  transRaw  !== '' ? parseFloat(transRaw)  : null,
+    isModified:         true,
+  };
+
+  const logs = loadLogs();
+  logs.push(newLog);
+  saveLogs(logs);
+
+  closeModal('modal-add-attendance');
+  renderAttendance();
+  renderClockTab();
+  showAlert('alert-attendance', '✅ 打刻データを追加しました');
+  gasSyncLog(newLog);
+}
+
+function deleteAttendanceLog(logId) {
+  const logs = loadLogs();
+  const log  = logs.find(l => l.id === logId);
+  if (!log) return;
+
+  const staffList = loadStaff();
+  const s = staffList.find(x => x.id === log.staffId);
+  const name = s ? s.name : '不明';
+  const dateStr = fmtDate(log.clockIn);
+
+  if (!confirm(`${name} / ${dateStr} の打刻データを削除しますか？\nこの操作は取り消せません。`)) return;
+
+  const next = logs.filter(l => l.id !== logId);
+  saveLogs(next);
+  renderAttendance();
+  renderClockTab();
+  showAlert('alert-attendance', '打刻データを削除しました');
+
+  showSyncToast('同期中...', 'syncing');
+  gasRequest('deleteAttendance', { id: logId })
+    .then(() => showSyncToast('削除完了', 'ok', 2000))
+    .catch(err => showGasError('打刻削除エラー: ' + err.message));
 }
 
 /* ============================================================
