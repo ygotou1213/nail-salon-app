@@ -2717,8 +2717,9 @@ async function initApp() {
 
   // Set default month filters before any render
   const ym = toYM(new Date());
+  const prevM = new Date(); prevM.setMonth(prevM.getMonth() - 1);
   document.getElementById('att-month-filter').value   = ym;
-  document.getElementById('payslip-month-sel').value  = ym;
+  document.getElementById('payslip-month-sel').value  = toYM(prevM);
   document.getElementById('analysis-month-sel').value = ym;
   const nextM = new Date();
   nextM.setMonth(nextM.getMonth() + 2);
