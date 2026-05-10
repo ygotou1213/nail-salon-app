@@ -2131,6 +2131,14 @@
       <label>修正交通費（円）</label>
       <input type="number" class="form-control" id="edit-transport" placeholder="空欄=基本交通費を使用" min="0">
     </div>
+    <div class="divider"></div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600">
+        <input type="checkbox" id="edit-break-chk" onchange="updateEditBreakPreview()">
+        休憩手当を適用する
+      </label>
+      <div id="edit-break-preview" style="margin-top:4px;font-size:0.85rem;color:var(--rose);min-height:1.2em"></div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-edit')">キャンセル</button>
       <button class="btn btn-primary" onclick="saveEditFromModal()">保存</button>
@@ -2187,6 +2195,7 @@
 ============================================================ */
 const ADMIN_PW = '1234';
 const GAS_URL  = 'https://script.google.com/macros/s/AKfycbzaqPEJHTtxNy-OoCvyfoMUPNBL6T_6rR2tC6y2lxUER4jkSEWMX1GS_t9aar0bGjDG/exec';
+const BREAK_LOG_KEY = 'ns_break_allowance_logs';
 
 /* ============================================================
    Storage helpers
@@ -2563,6 +2572,61 @@ function countWeekdays(year, month) {
 /** Check if a nullable/empty field has a meaningful value */
 function hasValue(v) {
   return v !== null && v !== undefined && v !== '';
+}
+
+/* ============================================================
+   Break Allowance helpers
+============================================================ */
+function loadBreakAllowanceLogs() {
+  try { return JSON.parse(localStorage.getItem(BREAK_LOG_KEY) || '[]'); } catch { return []; }
+}
+function appendBreakAllowanceLog(entry) {
+  const logs = loadBreakAllowanceLogs();
+  logs.push(entry);
+  localStorage.setItem(BREAK_LOG_KEY, JSON.stringify(logs));
+}
+
+function getBreakHoursFromLog(clockIn, clockOut) {
+  if (!clockIn || !clockOut) return 0;
+  const ri = roundClockIn(clockIn);
+  const ro = roundClockOut(clockOut);
+  const diffMs = ro - ri;
+  if (diffMs <= 0) return 0;
+  const diffH = diffMs / 3_600_000;
+  return diffH > 8 ? 1.0 : diffH > 6 ? 0.75 : 0;
+}
+
+function getEffectiveHourlyRate(log, staff) {
+  if (hasValue(log.adjustedHourlyRate)) return parseFloat(log.adjustedHourlyRate);
+  return staff ? (staff.hourlyRate || 0) : 0;
+}
+
+function calcBreakAllowanceForLog(log, staff) {
+  const breakH = getBreakHoursFromLog(log.clockIn, log.clockOut);
+  if (breakH === 0) return 0;
+  return Math.round(breakH * getEffectiveHourlyRate(log, staff));
+}
+
+function updateEditBreakPreview() {
+  const chk     = document.getElementById('edit-break-chk');
+  const preview = document.getElementById('edit-break-preview');
+  if (!chk.checked) { preview.textContent = ''; return; }
+
+  const logId      = document.getElementById('edit-log-id').value;
+  const clockInVal = document.getElementById('edit-clock-in').value;
+  const clockOutVal= document.getElementById('edit-clock-out').value;
+  const hourlyRaw  = document.getElementById('edit-hourly').value.trim();
+
+  const baseLog = loadLogs().find(l => l.id === logId) || {};
+  const tempLog = {
+    ...baseLog,
+    clockIn:            clockInVal  ? new Date(clockInVal).toISOString()  : baseLog.clockIn,
+    clockOut:           clockOutVal ? new Date(clockOutVal).toISOString() : baseLog.clockOut,
+    adjustedHourlyRate: hourlyRaw !== '' ? parseFloat(hourlyRaw) : baseLog.adjustedHourlyRate,
+  };
+  const staff  = loadStaff().find(s => s.id === baseLog.staffId);
+  const amount = calcBreakAllowanceForLog(tempLog, staff);
+  preview.textContent = amount > 0 ? `手当額: ${fmtYen(amount)}` : '休憩時間なし（手当不可）';
 }
 
 /** Format hours as "X時間Y分" */
@@ -3670,9 +3734,10 @@ async function importAttendanceCSV(event) {
 
 function renderMonthlySummary(logs, staffList, staffId) {
   const s              = staffList.find(x => x.id === staffId);
-  const doneLogs       = logs.filter(l => l.clockOut);
-  const totalHours     = doneLogs.reduce((acc, l) => acc + calcWorkHours(l.clockIn, l.clockOut), 0);
-  const totalTrans     = doneLogs.reduce((acc, l) => acc + calcTransport(l, s), 0);
+  const doneLogs           = logs.filter(l => l.clockOut);
+  const totalHours         = doneLogs.reduce((acc, l) => acc + calcWorkHours(l.clockIn, l.clockOut), 0);
+  const totalTrans         = doneLogs.reduce((acc, l) => acc + calcTransport(l, s), 0);
+  const totalBreakAllowance = doneLogs.reduce((acc, l) => acc + (l.breakAllowance || 0), 0);
   const monthlyCommute = s ? (s.monthlyCommute || 0) : 0;
 
   let totalWage;
@@ -3692,6 +3757,7 @@ function renderMonthlySummary(logs, staffList, staffId) {
   } else {
     totalWage = doneLogs.reduce((acc, l) => acc + calcWage(l, s), 0);
   }
+  totalWage += totalBreakAllowance;
   const totalAmount    = totalWage + totalTrans + monthlyCommute;
 
   document.getElementById('monthly-summary').classList.remove('hidden');
@@ -3737,6 +3803,8 @@ function openEditModal(logId) {
   document.getElementById('edit-hourly').value     = hasValue(log.adjustedHourlyRate) ? log.adjustedHourlyRate : '';
   document.getElementById('edit-wage').value       = hasValue(log.adjustedWage)       ? log.adjustedWage       : '';
   document.getElementById('edit-transport').value  = hasValue(log.adjustedTransport)  ? log.adjustedTransport  : '';
+  document.getElementById('edit-break-chk').checked = hasValue(log.breakAllowance) && log.breakAllowance > 0;
+  updateEditBreakPreview();
 
   openModal('modal-edit');
 }
@@ -3773,6 +3841,7 @@ function saveEditFromModal() {
   const idx  = logs.findIndex(l => l.id === logId);
   if (idx < 0) return;
 
+  const prevBreakAllowance = logs[idx].breakAllowance;
   logs[idx] = {
     ...logs[idx],
     clockIn:            new Date(clockInVal).toISOString(),
@@ -3782,6 +3851,35 @@ function saveEditFromModal() {
     adjustedTransport:  transRaw  !== '' ? parseFloat(transRaw)  : null,
     isModified:         true,
   };
+
+  const chkBreak = document.getElementById('edit-break-chk');
+  const staff    = loadStaff().find(s => s.id === logs[idx].staffId);
+  if (chkBreak.checked) {
+    const amount = calcBreakAllowanceForLog(logs[idx], staff);
+    logs[idx].breakAllowance = amount;
+    appendBreakAllowanceLog({
+      staffName:   staff ? staff.name : '',
+      date:        logs[idx].clockIn,
+      type:        '適用',
+      breakH:      getBreakHoursFromLog(logs[idx].clockIn, logs[idx].clockOut),
+      rate:        getEffectiveHourlyRate(logs[idx], staff),
+      amount,
+      operatedAt:  new Date().toISOString(),
+    });
+  } else {
+    if (hasValue(prevBreakAllowance)) {
+      appendBreakAllowanceLog({
+        staffName:   staff ? staff.name : '',
+        date:        logs[idx].clockIn,
+        type:        '取り消し',
+        breakH:      getBreakHoursFromLog(logs[idx].clockIn, logs[idx].clockOut),
+        rate:        getEffectiveHourlyRate(logs[idx], staff),
+        amount:      prevBreakAllowance,
+        operatedAt:  new Date().toISOString(),
+      });
+    }
+    logs[idx].breakAllowance = null;
+  }
 
   saveLogs(logs);
   closeModal('modal-edit');
@@ -3926,7 +4024,8 @@ function generatePayslip() {
     overtimePay = details.reduce((a, d) => a + (d.overtimePay || 0), 0);
     nightPay    = details.reduce((a, d) => a + (d.nightPay    || 0), 0);
   }
-  const totalTrans     = logs.reduce((acc, l) => acc + calcTransport(l, s), 0);
+  const totalTrans          = logs.reduce((acc, l) => acc + calcTransport(l, s), 0);
+  const totalBreakAllowance = logs.reduce((acc, l) => acc + (l.breakAllowance || 0), 0);
   const monthlyCommute = s.monthlyCommute || 0;
   const commute        = totalTrans + monthlyCommute;
 
@@ -3943,7 +4042,7 @@ function generatePayslip() {
 
   const allowance = saved.allowance ?? 0;
 
-  const baseGross = basicPay + overtimePay + nightPay + commute;
+  const baseGross = basicPay + overtimePay + nightPay + commute + totalBreakAllowance;
   const gross     = baseGross + allowance;
 
   // ── Deductions: 当月保存値 → 前月保存値（引継ぎ） → 自動計算 の優先順位 ──
