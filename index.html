@@ -2382,9 +2382,10 @@ function lookupStdSalary(monthly) {
  */
 function roundClockIn(isoStr) {
   const d = new Date(isoStr);
+  d.setSeconds(0, 0);
   const min = d.getMinutes();
   if (min === 0)        { /* as-is */ }
-  else if (min <= 29)   { d.setMinutes(30, 0, 0); }
+  else if (min <= 29)   { d.setMinutes(30); }
   else if (min === 30)  { /* as-is */ }
   else                  { d.setHours(d.getHours() + 1, 0, 0, 0); }
   return d;
@@ -2399,11 +2400,12 @@ function roundClockIn(isoStr) {
  */
 function roundClockOut(isoStr) {
   const d = new Date(isoStr);
+  d.setSeconds(0, 0);
   const min = d.getMinutes();
   if (min === 0)        { /* as-is */ }
-  else if (min <= 29)   { d.setMinutes(0, 0, 0); }
+  else if (min <= 29)   { d.setMinutes(0); }
   else if (min === 30)  { /* as-is */ }
-  else                  { d.setMinutes(30, 0, 0); }
+  else                  { d.setMinutes(30); }
   return d;
 }
 
