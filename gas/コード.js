@@ -24,6 +24,7 @@ function doGet(e) {
       case 'saveConstraint':      result = saveConstraint(e.parameter); break;
       case 'deleteConstraint':    result = deleteConstraint(e.parameter); break;
       case 'savePayslip':         result = savePayslip(e.parameter); break;
+      case 'queryMonthly':        result = queryMonthly(e.parameter); break;
       default: result = { error: 'Unknown action: ' + action };
     }
   } catch(e) {
@@ -161,7 +162,8 @@ function saveAttendance(data) {
   const values = lastRow > 0 ? sheet.getDataRange().getValues() : [];
   const idx = values.findIndex(r => r[0] === data.id);
   const row = [data.id, data.staffId, data.clockIn, data.clockOut,
-    data.adjustedWage, data.adjustedPay, data.adjustedTransport, data.isAdjusted];
+    data.adjustedWage, data.adjustedPay, data.adjustedTransport, data.isAdjusted,
+    data.breakAllowance !== undefined && data.breakAllowance !== '' ? Number(data.breakAllowance) : ''];
   if (idx >= 0) {
     sheet.getRange(idx + 1, 1, 1, row.length).setValues([row]);
   } else {
@@ -412,6 +414,39 @@ function deleteConstraint(data) {
   const idx = values.findIndex(r => r[0] === data.id);
   if (idx >= 0) sheet.deleteRow(idx + 1);
   return { success: true };
+}
+
+// スタッフ名（部分一致）と年月で勤怠・スタッフ情報を返す
+function queryMonthly(params) {
+  const nameQuery = (params.name || '').trim();
+  const yearMonth = (params.month || '').trim(); // "YYYY-MM"
+
+  const staffSheet = getSheet(SHEET_NAME_STAFF);
+  const attSheet   = getSheet(SHEET_NAME_ATTENDANCE);
+
+  const staffRows = staffSheet.getLastRow() > 0 ? staffSheet.getDataRange().getValues() : [];
+  const attRows   = attSheet.getLastRow()   > 0 ? attSheet.getDataRange().getValues()   : [];
+
+  // ヘッダー行を除いてスタッフを名前フィルタ
+  const matchedStaff = staffRows.filter((r, i) => {
+    if (i === 0) return false; // skip header if exists
+    const name = String(r[1] || '');
+    return nameQuery === '' || name.includes(nameQuery);
+  });
+
+  // ヘッダーなしの場合も考慮してIDセット作成
+  const staffIdSet = new Set(matchedStaff.map(r => String(r[0])));
+
+  // 勤怠を staffId と yearMonth でフィルタ
+  const matchedAtt = attRows.filter((r, i) => {
+    if (i === 0 && String(r[0]).toLowerCase() === 'id') return false;
+    const staffId   = String(r[1] || '');
+    const clockIn   = String(r[2] || '');
+    const ym        = clockIn.slice(0, 7); // "YYYY-MM"
+    return staffIdSet.has(staffId) && (yearMonth === '' || ym === yearMonth);
+  });
+
+  return { staff: matchedStaff, attendance: matchedAtt };
 }
 
 // Columns: id, staffId, yearMonth, allowance, healthIns, careIns, pension, employmentIns, incomeTax, residentTax, cashPay, note

@@ -6262,6 +6262,7 @@ function parseAttendanceRows(rows) {
     adjustedWage:       toNum(r[5]),  // GAS col5: adjustedPay   = fixed pay override
     adjustedTransport:  toNum(r[6]),
     isModified:         r[7] === true || r[7] === 'true' || r[7] === 1 || r[7] === 'TRUE',
+    breakAllowance:     toNum(r[8]),  // GAS col8: 休憩手当
   }));
 }
 
@@ -6414,6 +6415,7 @@ function logToGas(l) {
     adjustedPay:     l.adjustedWage       != null ? l.adjustedWage       : '',  // GAS col5
     adjustedTransport: l.adjustedTransport != null ? l.adjustedTransport : '',
     isAdjusted:      l.isModified || false,
+    breakAllowance:  l.breakAllowance != null ? l.breakAllowance : '',         // GAS col8
   };
 }
 
