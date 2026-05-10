@@ -4100,11 +4100,10 @@ function generatePayslip() {
   preview.innerHTML = `
     <input type="hidden" id="ps-current-staff-id" value="${escHtml(staffId)}">
     <input type="hidden" id="ps-current-month"    value="${escHtml(month)}">
-    <input type="hidden" id="ps-basic-pay"         value="${basicPay}">
+    <input type="hidden" id="ps-basic-pay"         value="${basicPay + totalBreakAllowance}">
     <input type="hidden" id="ps-overtime-pay"      value="${overtimePay}">
     <input type="hidden" id="ps-night-pay"         value="${nightPay}">
     <input type="hidden" id="ps-commute"           value="${commute}">
-    <input type="hidden" id="ps-break-allowance"   value="${totalBreakAllowance}">
 
     <div class="ps-doc-title">給 与 明 細</div>
     <div class="ps-doc-meta">
@@ -4127,7 +4126,7 @@ function generatePayslip() {
       <table class="ps-table">
         <thead><tr><th colspan="2" class="ps-section-hd">支　給</th></tr></thead>
         <tbody>
-          <tr><td class="ps-item-lbl">基本給${isMonthlyStaff ? `<span class="ps-na-badge">月給制</span>` : ''}</td><td class="ps-item-val num">${fmtYen(basicPay)}</td></tr>
+          <tr><td class="ps-item-lbl">基本給${isMonthlyStaff ? `<span class="ps-na-badge">月給制</span>` : ''}</td><td class="ps-item-val num">${fmtYen(basicPay + totalBreakAllowance)}</td></tr>
           <tr><td class="ps-item-lbl">残業手当</td><td class="ps-item-val num">${fmtYen(overtimePay)}</td></tr>
           ${nightRow}
           <tr><td class="ps-item-lbl">手当・その他</td><td class="ps-item-val">${editInput('ps-allowance', allowance, false)}</td></tr>
@@ -4210,7 +4209,7 @@ function recalcPayslipTotals() {
     const el = document.getElementById(id);
     return el ? (parseInt(el.value || '0') || 0) : 0;
   };
-  const gross = g('ps-basic-pay') + g('ps-overtime-pay') + g('ps-night-pay') + g('ps-commute') + g('ps-allowance') + g('ps-break-allowance');
+  const gross = g('ps-basic-pay') + g('ps-overtime-pay') + g('ps-night-pay') + g('ps-commute') + g('ps-allowance');
   const el0 = document.getElementById('ps-gross-display');
   if (el0) el0.textContent = fmtYen(gross);
 
@@ -4234,7 +4233,7 @@ function recalcPayslip() {
   if (!s) return;
 
   const g = id => (parseInt((document.getElementById(id) || {}).value || '0') || 0);
-  const gross = g('ps-basic-pay') + g('ps-overtime-pay') + g('ps-night-pay') + g('ps-commute') + g('ps-allowance') + g('ps-break-allowance');
+  const gross = g('ps-basic-pay') + g('ps-overtime-pay') + g('ps-night-pay') + g('ps-commute') + g('ps-allowance');
 
   const auto = calcDeductions(s, gross);
   const set  = (id, val) => { const el = document.getElementById(id); if (el && !el.disabled) el.value = Math.round(val); };
