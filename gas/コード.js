@@ -3,6 +3,7 @@ const SHEET_NAME_ATTENDANCE  = '勤怠';
 const SHEET_NAME_SHIFT       = 'シフト';
 const SHEET_NAME_SHIFT_REQ   = 'シフト希望';
 const SHEET_NAME_CONSTRAINT  = 'ソフト制約';
+const SHEET_NAME_PAYSLIP     = '給与明細';
 
 function doGet(e) {
   const action = e.parameter.action;
@@ -22,6 +23,7 @@ function doGet(e) {
       case 'deleteShiftRequest':  result = deleteShiftRequest(e.parameter); break;
       case 'saveConstraint':      result = saveConstraint(e.parameter); break;
       case 'deleteConstraint':    result = deleteConstraint(e.parameter); break;
+      case 'savePayslip':         result = savePayslip(e.parameter); break;
       default: result = { error: 'Unknown action: ' + action };
     }
   } catch(e) {
@@ -56,6 +58,7 @@ function doPost(e) {
       case 'deleteShiftRequest':  result = deleteShiftRequest(data); break;
       case 'saveConstraint':      result = saveConstraint(data); break;
       case 'deleteConstraint':    result = deleteConstraint(data); break;
+      case 'savePayslip':         result = savePayslip(data); break;
       default: result = { error: 'Unknown action: ' + action };
     }
   } catch(e) {
@@ -108,12 +111,14 @@ function getAllData() {
   const shiftSheet      = getSheet(SHEET_NAME_SHIFT);
   const reqSheet        = getSheet(SHEET_NAME_SHIFT_REQ);
   const conSheet        = getSheet(SHEET_NAME_CONSTRAINT);
+  const payslipSheet    = getSheet(SHEET_NAME_PAYSLIP);
   return {
     staff:        staffSheet.getLastRow()      > 0 ? staffSheet.getDataRange().getValues()      : [],
     attendance:   attendanceSheet.getLastRow() > 0 ? attendanceSheet.getDataRange().getValues() : [],
     shift:        shiftSheet.getLastRow()      > 0 ? normalizeShiftRows(shiftSheet.getDataRange().getValues()) : [],
     shiftRequest: reqSheet.getLastRow()        > 0 ? reqSheet.getDataRange().getValues()        : [],
     softConstraint: conSheet.getLastRow()      > 0 ? conSheet.getDataRange().getValues()        : [],
+    payslips:     payslipSheet.getLastRow()    > 0 ? payslipSheet.getDataRange().getValues()    : [],
   };
 }
 
@@ -406,5 +411,26 @@ function deleteConstraint(data) {
   const values = sheet.getDataRange().getValues();
   const idx = values.findIndex(r => r[0] === data.id);
   if (idx >= 0) sheet.deleteRow(idx + 1);
+  return { success: true };
+}
+
+// Columns: id, staffId, yearMonth, allowance, healthIns, careIns, pension, employmentIns, incomeTax, residentTax, cashPay, note
+function savePayslip(data) {
+  const sheet = getSheet(SHEET_NAME_PAYSLIP);
+  const lastRow = sheet.getLastRow();
+  const values = lastRow > 0 ? sheet.getDataRange().getValues() : [];
+  const toVal = v => (v === undefined || v === null) ? '' : v;
+  const row = [
+    data.id, data.staffId, data.yearMonth,
+    toVal(data.allowance), toVal(data.healthIns), toVal(data.careIns),
+    toVal(data.pension), toVal(data.employmentIns), toVal(data.incomeTax),
+    toVal(data.residentTax), toVal(data.cashPay), toVal(data.note),
+  ];
+  const idx = values.findIndex(r => r[0] === data.id);
+  if (idx >= 0) {
+    sheet.getRange(idx + 1, 1, 1, row.length).setValues([row]);
+  } else {
+    sheet.appendRow(row);
+  }
   return { success: true };
 }
