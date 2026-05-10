@@ -2345,7 +2345,8 @@ function calcDeductions(staff, gross) {
 
   const socialTotal = health + care + pension;
   const taxable     = Math.max(0, gross - employ - socialTotal);
-  const incomeTax   = calcIncomeTax(taxable, deps);
+  // 社保未加入スタッフは自身で確定申告するため源泉徴収しない
+  const incomeTax   = si ? calcIncomeTax(taxable, deps) : 0;
 
   return { health, care, pension, employ, incomeTax, socialTotal };
 }
