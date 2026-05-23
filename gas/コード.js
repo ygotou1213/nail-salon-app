@@ -5,10 +5,30 @@ const SHEET_NAME_SHIFT_REQ   = 'シフト希望';
 const SHEET_NAME_CONSTRAINT  = 'ソフト制約';
 const SHEET_NAME_PAYSLIP     = '給与明細';
 
+const SERVER_TOKEN_REQUIRED_ACTIONS = [
+  // 第1段階では準備のみ。ここに管理者系actionを追加すると検証が有効になる。
+];
+
+function isServerTokenRequired(action) {
+  return SERVER_TOKEN_REQUIRED_ACTIONS.indexOf(action) >= 0;
+}
+
+function verifyServerToken(data) {
+  const expected = PropertiesService.getScriptProperties().getProperty('GAS_SERVER_TOKEN');
+  if (!expected) throw new Error('GAS_SERVER_TOKEN is not configured');
+  const actual = String((data && data.serverToken) || '');
+  if (!actual || actual !== expected) throw new Error('Invalid serverToken');
+}
+
+function assertServerTokenIfRequired(action, data) {
+  if (isServerTokenRequired(action)) verifyServerToken(data);
+}
+
 function doGet(e) {
   const action = e.parameter.action;
   let result;
   try {
+    assertServerTokenIfRequired(action, e.parameter);
     switch (action) {
       case 'getAll':              result = getAllData(); break;
       case 'saveStaff':           result = saveStaff(e.parameter); break;
@@ -45,6 +65,7 @@ function doPost(e) {
   const action = data.action;
   let result;
   try {
+    assertServerTokenIfRequired(action, data);
     switch (action) {
       case 'getAll':              result = getAllData(); break;
       case 'saveStaff':           result = saveStaff(data); break;

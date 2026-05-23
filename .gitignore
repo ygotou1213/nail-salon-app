@@ -1,2 +1,5 @@
 .claude/
 .DS_Store
+backup_*.json
+api/.next/
+api/node_modules/

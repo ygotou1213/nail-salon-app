@@ -309,44 +309,60 @@
     }
 
     /* ========================================
-       Staff Management Cards
+       Staff Management
     ======================================== */
-    .staff-grid {
+    .staff-table .staff-name-cell {
+      font-weight: 800;
+      min-width: 8em;
+    }
+
+    .staff-table .staff-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      min-width: 150px;
+    }
+
+    .staff-detail-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
     }
 
-    .staff-card {
-      background: linear-gradient(160deg, #fff 60%, var(--pink-lightest));
-      border-radius: var(--radius);
-      padding: 16px;
-      border: 2px solid var(--pink-light);
-      transition: all 0.2s;
-    }
-    .staff-card:hover {
-      border-color: var(--pink-mid);
-      box-shadow: var(--shadow-hover);
-      transform: translateY(-2px);
+    .staff-detail-group {
+      border: 1px solid var(--pink-light);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      background: var(--pink-lightest);
     }
 
-    .staff-card-name {
-      font-size: 1rem;
+    .staff-detail-group.full {
+      grid-column: 1 / -1;
+    }
+
+    .staff-detail-heading {
+      font-size: 0.82rem;
       font-weight: 800;
-      color: var(--text);
-      margin-bottom: 8px;
+      color: var(--rose);
+      margin-bottom: 10px;
     }
 
-    .staff-card-info {
-      font-size: 0.8rem;
+    .staff-detail-list {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      gap: 8px 12px;
+      font-size: 0.84rem;
+    }
+
+    .staff-detail-label {
       color: var(--text-light);
-      line-height: 1.8;
+      font-weight: 700;
     }
 
-    .staff-card-actions {
-      display: flex;
-      gap: 6px;
-      margin-top: 12px;
+    .staff-detail-value {
+      color: var(--text);
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
     }
 
     /* ========================================
@@ -726,7 +742,8 @@
     ======================================== */
     @media (max-width: 480px) {
       .clock-time { font-size: 2.2rem; }
-      .staff-grid { grid-template-columns: 1fr; }
+      .staff-detail-grid { grid-template-columns: 1fr; }
+      .staff-detail-list { grid-template-columns: 1fr; gap: 3px 0; }
       .summary-grid { grid-template-columns: 1fr 1fr; }
       .payslip-summary-grid { grid-template-columns: 1fr 1fr; }
       .clock-btns { grid-template-columns: 1fr 1fr; }
@@ -1742,7 +1759,7 @@
         <button class="btn btn-primary btn-sm" onclick="openStaffModal(null)">＋ スタッフ追加</button>
       </div>
       <div id="alert-staff"></div>
-      <div class="staff-grid" id="staff-grid"><!-- JS --></div>
+      <div id="staff-table"><!-- JS --></div>
     </div>
   </section>
 
@@ -1972,6 +1989,18 @@
   </div>
 </div>
 
+<!-- Staff Detail Modal -->
+<div class="modal-overlay" id="modal-staff-detail">
+  <div class="modal" style="max-width:760px;">
+    <div class="modal-title" id="modal-staff-detail-title">👤 スタッフ詳細</div>
+    <div id="staff-detail-content"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-staff-detail')">閉じる</button>
+      <button class="btn btn-primary" id="staff-detail-edit-btn">編集</button>
+    </div>
+  </div>
+</div>
+
 <!-- Staff Modal -->
 <div class="modal-overlay" id="modal-staff">
   <div class="modal" style="max-width:520px;">
@@ -2193,8 +2222,8 @@
 /* ============================================================
    Constants
 ============================================================ */
-const ADMIN_PW = '1234';
 const GAS_URL  = 'https://script.google.com/macros/s/AKfycbzaqPEJHTtxNy-OoCvyfoMUPNBL6T_6rR2tC6y2lxUER4jkSEWMX1GS_t9aar0bGjDG/exec';
+const API_BASE = (window.NS_API_BASE || 'https://nail-salon-app-api.vercel.app').replace(/\/$/, '');
 const BREAK_LOG_KEY = 'ns_break_allowance_logs';
 
 /* ============================================================
@@ -2726,7 +2755,7 @@ async function initApp() {
   document.getElementById('shift-month-sel').value = toYM(nextM);
 
   startClock();
-  updateAdminUI();
+  await refreshAdminSession();
 
   // Fetch all data from GAS before rendering
   showLoading('データを読み込んでいます...');
@@ -2795,20 +2824,56 @@ function updateAdminUI() {
   if (!admin) switchTab('clock');
 }
 
-function doLogin() {
+async function adminApi(path, options = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    credentials: 'include',
+    headers: {
+      'content-type': 'application/json',
+      ...(options.headers || {}),
+    },
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.error) {
+    throw new Error(json.error || `HTTP ${res.status}`);
+  }
+  return json;
+}
+
+async function refreshAdminSession() {
+  try {
+    const session = await adminApi('/api/admin/session');
+    setAdmin(!!session.authenticated);
+  } catch (_) {
+    setAdmin(false);
+  }
+  updateAdminUI();
+}
+
+async function doLogin() {
   const pw = document.getElementById('login-pw').value;
-  if (pw === ADMIN_PW) {
+  try {
+    await adminApi('/api/admin/login', {
+      method: 'POST',
+      body: JSON.stringify({ password: pw }),
+    });
     setAdmin(true);
     closeModal('modal-login');
     updateAdminUI();
     renderClockTab();   // refresh today's logs card
     renderAttendance();
-  } else {
+  } catch (err) {
+    setAdmin(false);
     showAlert('alert-login', 'パスワードが違います', 'error', 0);
   }
 }
 
-function doLogout() {
+async function doLogout() {
+  try {
+    await adminApi('/api/admin/logout', { method: 'POST', body: '{}' });
+  } catch (_) {
+    // Local UI logout still proceeds if the API is unreachable.
+  }
   setAdmin(false);
   updateAdminUI();
   renderClockTab();
@@ -3080,42 +3145,168 @@ function renderTodayLogTable(staffList, logs, todayYMD) {
 ============================================================ */
 function renderStaffTab() {
   const staffList = loadStaff();
-  const grid = document.getElementById('staff-grid');
+  const tableDiv = document.getElementById('staff-table');
 
   if (staffList.length === 0) {
-    grid.innerHTML = '<div class="empty-state"><div class="icon">👤</div><p>スタッフが登録されていません</p></div>';
+    tableDiv.innerHTML = '<div class="empty-state"><div class="icon">👤</div><p>スタッフが登録されていません</p></div>';
     return;
   }
 
-  grid.innerHTML = staffList.map(s => {
-    const empLabel  = s.employment || '常勤';
-    const empCls    = empLabel === '常勤' ? 'badge-fulltime' : 'badge-parttime';
-    const empText   = empLabel === '非常勤' && s.weekDays
-      ? `非常勤（週${s.weekDays}日）` : empLabel;
-    const statusCls = (s.status || '在籍中') === '在籍中' ? '' : 'badge-inactive';
-    const statusLabel = s.status || '在籍中';
+  const rows = staffList.map(s => {
+    const statusLabel = staffText(s.status || '在籍中');
+    const statusCls = (s.status || '在籍中') === '在籍中' ? 'badge-working' : 'badge-inactive';
+    const empLabel = staffText(s.employment || '常勤');
+    const empCls = (s.employment || '常勤') === '常勤' ? 'badge-fulltime' : 'badge-parttime';
+    const payType = staffPayTypeLabel(s);
+    const payValue = staffPrimaryPay(s);
+    const transport = staffTransportSummary(s);
+    const weekDays = s.weekDays ? `週${s.weekDays}日` : '未登録';
+    const contact = (s.phone || s.email) ? '登録あり' : '未登録';
+    const inactiveStyle = (s.status || '在籍中') === '非稼働' ? ' style="opacity:0.65;"' : '';
+    const sid = jsString(s.id);
     return `
-    <div class="staff-card" style="${(s.status || '在籍中') === '非稼働' ? 'opacity:0.6;' : ''}">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <div class="staff-card-name" style="margin:0;">${escHtml(s.name)}</div>
-        <span class="badge ${statusCls || 'badge-working'}" style="font-size:0.65rem;">${statusLabel}</span>
-      </div>
-      <div style="margin-bottom:6px;">
-        <span class="badge ${empCls}" style="font-size:0.68rem;">${empText}</span>
-      </div>
-      <div class="staff-card-info">
-        ${s.payType === 'monthly'
-          ? `月給：${fmtYen(s.monthlySalary || 0)}`
-          : `時給：${fmtYen(s.hourlyRate || 0)}`}<br>
-        交通費：${fmtYen(s.dailyTransport || 0)} / 日<br>
-        定期代：${fmtYen(s.monthlyCommute || 0)} / 月
-      </div>
-      <div class="staff-card-actions">
-        <button class="btn btn-secondary btn-sm" onclick="openStaffModal('${s.id}')">編集</button>
-        <button class="btn btn-danger btn-sm"    onclick="deleteStaff('${s.id}')">削除</button>
-      </div>
-    </div>`;
+      <tr${inactiveStyle}>
+        <td class="staff-name-cell">${staffText(s.name)}</td>
+        <td><span class="badge ${statusCls}" style="font-size:0.68rem;">${statusLabel}</span></td>
+        <td><span class="badge ${empCls}" style="font-size:0.68rem;">${empLabel}</span></td>
+        <td>${payType}</td>
+        <td class="num">${payValue}</td>
+        <td>${transport}</td>
+        <td>${escHtml(weekDays)}</td>
+        <td>${contact}</td>
+        <td>
+          <div class="staff-actions">
+            <button class="btn btn-outline btn-sm" onclick='openStaffDetailModal(${sid})'>詳細</button>
+            <button class="btn btn-secondary btn-sm" onclick='openStaffModal(${sid})'>編集</button>
+            <button class="btn btn-danger btn-sm" onclick='deleteStaff(${sid})'>削除</button>
+          </div>
+        </td>
+      </tr>`;
   }).join('');
+
+  tableDiv.innerHTML = `
+    <div class="table-wrap">
+      <table class="staff-table">
+        <thead>
+          <tr>
+            <th>氏名</th>
+            <th>ステータス</th>
+            <th>雇用形態</th>
+            <th>給与区分</th>
+            <th class="num">給与</th>
+            <th>交通費</th>
+            <th>週勤務日数</th>
+            <th>連絡先</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function staffText(value) {
+  const text = String(value ?? '').trim();
+  return text ? escHtml(text) : '未登録';
+}
+
+function staffMoney(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? fmtYen(n) : '未登録';
+}
+
+function staffPayTypeLabel(staff) {
+  return staff.payType === 'monthly' ? '月給制' : '時給制';
+}
+
+function staffPrimaryPay(staff) {
+  return staff.payType === 'monthly'
+    ? staffMoney(staff.monthlySalary)
+    : staffMoney(staff.hourlyRate);
+}
+
+function staffTransportSummary(staff) {
+  const daily = Number(staff.dailyTransport) || 0;
+  const monthly = Number(staff.monthlyCommute) || 0;
+  if (!daily && !monthly) return '未登録';
+  const parts = [];
+  if (daily) parts.push(`${fmtYen(daily)} / 日`);
+  if (monthly) parts.push(`${fmtYen(monthly)} / 月`);
+  return parts.join('<br>');
+}
+
+function staffBool(value) {
+  return value ? 'あり' : 'なし';
+}
+
+function staffWeekDays(staff) {
+  return staff.weekDays ? `週${staff.weekDays}日` : '未登録';
+}
+
+function jsString(value) {
+  return JSON.stringify(String(value)).replace(/</g, '\\u003c');
+}
+
+function detailRows(items) {
+  return `<div class="staff-detail-list">${items.map(([label, value]) => `
+    <div class="staff-detail-label">${escHtml(label)}</div>
+    <div class="staff-detail-value">${value}</div>
+  `).join('')}</div>`;
+}
+
+function detailGroup(title, items, extraClass = '') {
+  return `
+    <section class="staff-detail-group ${extraClass}">
+      <div class="staff-detail-heading">${escHtml(title)}</div>
+      ${detailRows(items)}
+    </section>`;
+}
+
+function openStaffDetailModal(id) {
+  if (!isAdmin()) return;
+  const staff = loadStaff().find(x => x.id === id);
+  if (!staff) return;
+
+  document.getElementById('modal-staff-detail-title').textContent = `👤 ${staff.name || 'スタッフ'} 詳細`;
+  document.getElementById('staff-detail-edit-btn').onclick = () => {
+    closeModal('modal-staff-detail');
+    openStaffModal(id);
+  };
+  document.getElementById('staff-detail-content').innerHTML = `
+    <div class="staff-detail-grid">
+      ${detailGroup('基本情報', [
+        ['氏名', staffText(staff.name)],
+        ['ステータス', staffText(staff.status || '在籍中')],
+        ['雇用形態', staffText(staff.employment || '常勤')],
+        ['週勤務日数', escHtml(staffWeekDays(staff))],
+      ])}
+      ${detailGroup('連絡先', [
+        ['電話', staffText(staff.phone)],
+        ['メール', staffText(staff.email)],
+        ['住所', staffText(staff.address)],
+      ])}
+      ${detailGroup('通勤', [
+        ['通勤経路', staffText(staff.route)],
+        ['日額交通費', staffMoney(staff.dailyTransport)],
+        ['月額定期代', staffMoney(staff.monthlyCommute)],
+      ])}
+      ${detailGroup('給与', [
+        ['給与区分', escHtml(staffPayTypeLabel(staff))],
+        ['時給', staffMoney(staff.hourlyRate)],
+        ['月給', staffMoney(staff.monthlySalary)],
+      ])}
+      ${detailGroup('保険・税務', [
+        ['生年月日', staffText(staff.birthdate)],
+        ['扶養人数', staff.dependents || staff.dependents === 0 ? escHtml(String(staff.dependents)) : '未登録'],
+        ['標準報酬月額', staffMoney(staff.stdSalary)],
+        ['社会保険', staffBool(staff.socialIns)],
+        ['雇用保険', staffBool(staff.employIns)],
+      ])}
+      ${detailGroup('メモ', [
+        ['管理者メモ', staffText(staff.memo)],
+      ], 'full')}
+    </div>`;
+  openModal('modal-staff-detail');
 }
 
 function autoFillStdSalary() {
