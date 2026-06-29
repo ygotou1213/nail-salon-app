@@ -2579,9 +2579,11 @@ function calcPayDetails(log, staff) {
     r.baseRate    = baseRate;
     r.dayRate     = dayRate;
     r.appliedRate = appliedRate;
-    r.basicPay    = Math.floor(appliedRate * netH);
-    r.overtimePay = Math.floor(appliedRate * 0.25 * overH);
+    r.overtimePay = Math.floor(appliedRate * 1.25 * overH);
     r.nightPay    = Math.floor(appliedRate * 0.25 * nightH);
+    // basicPay は後決め：合計を旧計算（floor×3）と一致させてズレを防ぐ
+    const _oldTotal = Math.floor(appliedRate * netH) + Math.floor(appliedRate * 0.25 * overH) + Math.floor(appliedRate * 0.25 * nightH);
+    r.basicPay    = _oldTotal - r.overtimePay - r.nightPay;
   }
   r.dayTotal = r.basicPay + r.overtimePay + r.nightPay + transport;
   return r;
