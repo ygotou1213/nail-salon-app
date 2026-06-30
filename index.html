@@ -278,6 +278,7 @@
     .badge-inactive { background: #eeeeee; color: #9e9e9e; }
     .badge-fulltime { background: #e3f2fd; color: #1565c0; }
     .badge-parttime { background: #fff8e1; color: #e65100; }
+    .badge-pl       { background: #c6f6d5; color: #276749; font-size:0.72rem; padding:1px 6px; }
 
     /* ========================================
        Clock Action Area
@@ -1688,6 +1689,7 @@
   <button class="nav-tab admin-only hidden" data-tab="payslip">💴 給与明細</button>
   <button class="nav-tab admin-only hidden" data-tab="shift">📅 シフト提案</button>
   <button class="nav-tab admin-only hidden" data-tab="analysis">📊 分析</button>
+  <button class="nav-tab admin-only hidden" data-tab="paidleave">🏖️ 有給管理</button>
 </nav>
 
 <!-- ============================================================
@@ -1965,11 +1967,84 @@
     </div>
   </section>
 
+  <!-- 有給管理タブ -->
+  <section id="tab-paidleave" class="section">
+    <div class="card">
+      <div class="card-title">🏖️ 有給管理</div>
+      <div id="pl-summary-area"></div>
+    </div>
+  </section>
+
 </main>
 
 <!-- ============================================================
      MODALS
 ============================================================ -->
+
+<!-- 有給消化記録 追加モーダル -->
+<div class="modal-overlay" id="modal-pl-use">
+  <div class="modal">
+    <div class="modal-title">🏖️ 有給消化を記録</div>
+    <div id="alert-pl-use"></div>
+    <input type="hidden" id="pl-use-edit-id">
+    <div class="form-group">
+      <label>スタッフ</label>
+      <select class="form-control" id="pl-use-staff-sel"></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="form-group">
+        <label>日付</label>
+        <input type="date" class="form-control" id="pl-use-date-input">
+      </div>
+      <div class="form-group">
+        <label>日数</label>
+        <select class="form-control" id="pl-use-days-input">
+          <option value="1">全日（1日）</option>
+          <option value="0.5">半日（0.5日）</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>備考</label>
+      <input type="text" class="form-control" id="pl-use-note-input" placeholder="任意">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-pl-use')">キャンセル</button>
+      <button class="btn btn-primary" onclick="savePaidLeaveUseFromModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 有給付与 手動補正モーダル -->
+<div class="modal-overlay" id="modal-pl-grant">
+  <div class="modal">
+    <div class="modal-title">➕ 有給付与（手動補正）</div>
+    <div id="alert-pl-grant"></div>
+    <input type="hidden" id="pl-grant-edit-id">
+    <div class="form-group">
+      <label>スタッフ</label>
+      <select class="form-control" id="pl-grant-staff-sel"></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="form-group">
+        <label>付与日</label>
+        <input type="date" class="form-control" id="pl-grant-date-input">
+      </div>
+      <div class="form-group">
+        <label>付与日数</label>
+        <input type="number" class="form-control" id="pl-grant-days-input" min="0.5" step="0.5" placeholder="例: 2">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>備考</label>
+      <input type="text" class="form-control" id="pl-grant-note-input" placeholder="例: 試用期間短縮付与">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-pl-grant')">キャンセル</button>
+      <button class="btn btn-primary" onclick="savePaidLeaveGrantFromModal()">保存</button>
+    </div>
+  </div>
+</div>
 
 <!-- Login Modal -->
 <div class="modal-overlay" id="modal-login">
@@ -2125,6 +2200,23 @@
       </div>
     </div>
 
+    <!-- 有給管理 -->
+    <p class="text-sm font-bold text-muted mb-2" style="margin-top:12px;">── 有給管理</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="form-group">
+        <label>有給起算日</label>
+        <input type="date" class="form-control" id="staff-pl-base-input">
+        <div class="form-hint">労基法付与の計算基準日</div>
+      </div>
+      <div class="form-group">
+        <label style="margin-bottom:6px;">有給対象外</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:4px;">
+          <input type="checkbox" id="staff-pl-exempt-input">
+          <span>有給付与対象外（業務委託・オーナー等）</span>
+        </label>
+      </div>
+    </div>
+
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-staff')">キャンセル</button>
       <button class="btn btn-primary" onclick="saveStaffFromModal()">保存</button>
@@ -2234,18 +2326,24 @@ const _cache = {
   staff: [], logs: [], shifts: {}, payslips: {},
   shiftRequests: {},   // { 'YYYY-MM': { [staffId]: { id, preferDaysOfWeek, offDaysOfWeek, specificDates } } }
   softConstraints: {}, // { 'YYYY-MM': [{ id, type, params, description, priority }] }
+  paidLeaveGrants: [], // [{ id, staffId, grantDate, days, note }]
+  paidLeaveUses:   [], // [{ id, staffId, date, days, note }]
 };
 
-function loadStaff()           { return _cache.staff.slice(); }
-function saveStaff(d)          { _cache.staff          = d; }
-function loadLogs()            { return _cache.logs.slice(); }
-function saveLogs(d)           { _cache.logs           = d; }
-function loadShifts()          { return _cache.shifts; }
-function saveShifts(d)         { _cache.shifts         = d; }
-function loadShiftRequests()   { return _cache.shiftRequests; }
-function saveShiftRequests(d)  { _cache.shiftRequests  = d; }
-function loadSoftConstraints() { return _cache.softConstraints; }
-function saveSoftConstraints(d){ _cache.softConstraints = d; }
+function loadStaff()             { return _cache.staff.slice(); }
+function saveStaff(d)            { _cache.staff            = d; }
+function loadLogs()              { return _cache.logs.slice(); }
+function saveLogs(d)             { _cache.logs             = d; }
+function loadShifts()            { return _cache.shifts; }
+function saveShifts(d)           { _cache.shifts           = d; }
+function loadShiftRequests()     { return _cache.shiftRequests; }
+function saveShiftRequests(d)    { _cache.shiftRequests    = d; }
+function loadSoftConstraints()   { return _cache.softConstraints; }
+function saveSoftConstraints(d)  { _cache.softConstraints  = d; }
+function loadPaidLeaveGrants()   { return _cache.paidLeaveGrants.slice(); }
+function savePaidLeaveGrants(d)  { _cache.paidLeaveGrants  = d; }
+function loadPaidLeaveUses()     { return _cache.paidLeaveUses.slice(); }
+function savePaidLeaveUses(d)    { _cache.paidLeaveUses    = d; }
 
 /* Shift patterns (fixed master) */
 const SHIFT_PATTERNS = {
@@ -2895,7 +2993,8 @@ function switchTab(name) {
     t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.section').forEach(s =>
     s.classList.toggle('active', s.id === `tab-${name}`));
-  if (name === 'shift') onShiftMonthChange();
+  if (name === 'shift')     onShiftMonthChange();
+  if (name === 'paidleave') renderPaidLeaveTab();
 }
 
 /* ============================================================
@@ -3034,18 +3133,20 @@ function renderStaffClockHistory(staff) {
     </table>`;
 
   // Last 30 days table
+  const plDates = getPaidLeaveDateSet(staff.id);
   const rows = [];
   for (let i = 0; i < 30; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
     const ymd = toYMD(d);
     const log = logs.find(l => l.staffId === staff.id && toYMD(l.clockIn) === ymd) || null;
-    const dateLabel = `${d.getMonth() + 1}/${d.getDate()}`;
-    const ci  = log ? fmtTime(log.clockIn)              : '—';
-    const co  = log ? fmtTime(log.clockOut)             : '—';
-    const rs  = log ? fmtTime(roundClockIn(log.clockIn)): '—';
+    const isPL = plDates.has(ymd);
+    const dateLabel = `${d.getMonth() + 1}/${d.getDate()}${isPL ? ' <span class="badge badge-pl">有給</span>' : ''}`;
+    const ci  = log ? fmtTime(log.clockIn)               : (isPL ? '—' : '—');
+    const co  = log ? fmtTime(log.clockOut)              : '—';
+    const rs  = log ? fmtTime(roundClockIn(log.clockIn)) : '—';
     const re  = log && log.clockOut ? fmtTime(roundClockOut(log.clockOut)) : '—';
-    rows.push(`<tr><td>${dateLabel}</td><td>${ci}</td><td>${co}</td><td>${rs}</td><td>${re}</td></tr>`);
+    rows.push(`<tr${isPL ? ' style="background:#f0fff4;"' : ''}><td>${dateLabel}</td><td>${ci}</td><td>${co}</td><td>${rs}</td><td>${re}</td></tr>`);
   }
   document.getElementById('staff-history-table').innerHTML = `
     <table class="data-table">
@@ -3350,6 +3451,8 @@ function openStaffModal(id) {
     document.getElementById('staff-std-salary-input').value      = s.stdSalary || '';
     document.getElementById('staff-social-ins-input').checked    = !!s.socialIns;
     document.getElementById('staff-employ-ins-input').checked    = !!s.employIns;
+    document.getElementById('staff-pl-base-input').value         = s.paidLeaveBaseDate || '';
+    document.getElementById('staff-pl-exempt-input').checked     = !!s.paidLeaveExempt;
   } else {
     document.getElementById('modal-staff-title').textContent     = '👤 スタッフ追加';
     document.getElementById('staff-edit-id').value               = '';
@@ -3372,6 +3475,8 @@ function openStaffModal(id) {
     document.getElementById('staff-std-salary-input').value      = '';
     document.getElementById('staff-social-ins-input').checked    = false;
     document.getElementById('staff-employ-ins-input').checked    = false;
+    document.getElementById('staff-pl-base-input').value         = '';
+    document.getElementById('staff-pl-exempt-input').checked     = false;
   }
   onEmploymentChange(); // sync visibility of weekdays / paytype fields
   openModal('modal-staff');
@@ -3430,8 +3535,10 @@ function saveStaffFromModal() {
   const birthdate   = document.getElementById('staff-birthdate-input').value;
   const dependents  = parseInt(document.getElementById('staff-dependents-input').value || '0', 10) || 0;
   const stdSalaryRaw = document.getElementById('staff-std-salary-input').value;
-  const socialIns   = document.getElementById('staff-social-ins-input').checked;
-  const employIns   = document.getElementById('staff-employ-ins-input').checked;
+  const socialIns         = document.getElementById('staff-social-ins-input').checked;
+  const employIns         = document.getElementById('staff-employ-ins-input').checked;
+  const paidLeaveBaseDate = document.getElementById('staff-pl-base-input').value;
+  const paidLeaveExempt   = document.getElementById('staff-pl-exempt-input').checked;
 
   // --- Validation ---
   if (!name) {
@@ -3496,6 +3603,7 @@ function saveStaffFromModal() {
     payType, hourlyRate, monthlySalary, dailyTransport, monthlyCommute,
     route, address, email, phone, memo,
     birthdate, dependents, stdSalary, socialIns, employIns,
+    paidLeaveBaseDate, paidLeaveExempt,
   };
 
   let savedStaff;
@@ -4206,6 +4314,15 @@ function generatePayslip() {
   const totalHours   = logs.reduce((acc, l) => acc + calcWorkHours(l.clockIn, l.clockOut), 0);
   const totalOvertimeH = logs.reduce((acc, l) => acc + ((calcPayDetails(l, s).overtimeH) || 0), 0);
 
+  // ── 有給消化（当月） ──
+  const plUsesMonth = loadPaidLeaveUses().filter(u => u.staffId === staffId && u.date.startsWith(month));
+  const plDays      = plUsesMonth.reduce((a, u) => a + u.days, 0);
+  const plWage      = !s.paidLeaveExempt && plDays > 0 && !isMonthlyStaffCheck(s)
+    ? Math.round((s.hourlyRate || 0) * 8 * plDays)  // 所定8時間×時給×日数
+    : 0;
+
+  function isMonthlyStaffCheck(st) { return st.payType === 'monthly' && st.monthlySalary; }
+
   // ── Earnings ──
   const isMonthlyStaff = s.payType === 'monthly' && s.monthlySalary;
   let basicPay, overtimePay, nightPay;
@@ -4236,7 +4353,7 @@ function generatePayslip() {
 
   const allowance = saved.allowance ?? 0;
 
-  const baseGross = basicPay + overtimePay + nightPay + commute + totalBreakAllowance;
+  const baseGross = basicPay + overtimePay + nightPay + commute + totalBreakAllowance + plWage;
   const gross     = baseGross + allowance;
 
   // ── Deductions: 当月保存値 → 前月保存値（引継ぎ） → 自動計算 の優先順位 ──
@@ -4288,6 +4405,8 @@ function generatePayslip() {
 
   const nightRow = nightPay > 0
     ? `<tr><td class="ps-item-lbl">深夜手当</td><td class="ps-item-val num">${fmtYen(nightPay)}</td></tr>` : '';
+  const plRow = plDays > 0
+    ? `<tr><td class="ps-item-lbl">有給休暇（${plDays}日）${isMonthlyStaff ? '<span class="ps-na-badge">月給制</span>' : ''}</td><td class="ps-item-val num">${isMonthlyStaff ? '—' : fmtYen(plWage)}</td></tr>` : '';
 
   const preview = document.getElementById('payslip-preview');
   preview.classList.remove('hidden');
@@ -4297,6 +4416,7 @@ function generatePayslip() {
     <input type="hidden" id="ps-basic-pay"         value="${basicPay + totalBreakAllowance}">
     <input type="hidden" id="ps-overtime-pay"      value="${overtimePay}">
     <input type="hidden" id="ps-night-pay"         value="${nightPay}">
+    <input type="hidden" id="ps-pl-wage"           value="${plWage}">
     <input type="hidden" id="ps-commute"           value="${commute}">
 
     <div class="ps-doc-title">給 与 明 細</div>
@@ -4313,7 +4433,7 @@ function generatePayslip() {
         <td class="ps-item-lbl">出勤日数</td><td class="ps-item-val">${workDays}日</td>
         <td class="ps-item-lbl">勤務時間</td><td class="ps-item-val">${fmtHours(totalHours)}</td>
         <td class="ps-item-lbl">残業時間</td><td class="ps-item-val">${fmtHours(totalOvertimeH)}</td>
-      </tr></tbody>
+      </tr>${plDays > 0 ? `<tr><td class="ps-item-lbl">有給取得</td><td class="ps-item-val" colspan="5">${plDays}日</td></tr>` : ''}</tbody>
     </table>
 
     <div class="ps-2col">
@@ -4323,6 +4443,7 @@ function generatePayslip() {
           <tr><td class="ps-item-lbl">基本給${isMonthlyStaff ? `<span class="ps-na-badge">月給制</span>` : ''}</td><td class="ps-item-val num">${fmtYen(basicPay + totalBreakAllowance)}</td></tr>
           <tr><td class="ps-item-lbl">残業手当</td><td class="ps-item-val num">${fmtYen(overtimePay)}</td></tr>
           ${nightRow}
+          ${plRow}
           <tr><td class="ps-item-lbl">手当・その他</td><td class="ps-item-val">${editInput('ps-allowance', allowance, false)}</td></tr>
           <tr><td class="ps-item-lbl">通勤手当</td><td class="ps-item-val num">${fmtYen(commute)}</td></tr>
         </tbody>
@@ -4403,7 +4524,7 @@ function recalcPayslipTotals() {
     const el = document.getElementById(id);
     return el ? (parseInt(el.value || '0') || 0) : 0;
   };
-  const gross = g('ps-basic-pay') + g('ps-overtime-pay') + g('ps-night-pay') + g('ps-commute') + g('ps-allowance');
+  const gross = g('ps-basic-pay') + g('ps-overtime-pay') + g('ps-night-pay') + g('ps-commute') + g('ps-pl-wage') + g('ps-allowance');
   const el0 = document.getElementById('ps-gross-display');
   if (el0) el0.textContent = fmtYen(gross);
 
@@ -4427,7 +4548,7 @@ function recalcPayslip() {
   if (!s) return;
 
   const g = id => (parseInt((document.getElementById(id) || {}).value || '0') || 0);
-  const gross = g('ps-basic-pay') + g('ps-overtime-pay') + g('ps-night-pay') + g('ps-commute') + g('ps-allowance');
+  const gross = g('ps-basic-pay') + g('ps-overtime-pay') + g('ps-night-pay') + g('ps-commute') + g('ps-pl-wage') + g('ps-allowance');
 
   const auto = calcDeductions(s, gross);
   const set  = (id, val) => { const el = document.getElementById(id); if (el && !el.disabled) el.value = Math.round(val); };
@@ -6362,6 +6483,236 @@ function renderCostAnalysis(month) {
 }
 
 /* ============================================================
+   PAID LEAVE TAB
+============================================================ */
+
+// 労基法準拠の自動付与スケジュール: [起算日からの月数, 付与日数]
+const PAID_LEAVE_SCHEDULE = [
+  [6, 10], [18, 11], [30, 12], [42, 14], [54, 16], [66, 18], [78, 20]
+];
+
+function calcAutoGrants(staff) {
+  if (staff.paidLeaveExempt || !staff.paidLeaveBaseDate) return [];
+  const base  = new Date(staff.paidLeaveBaseDate);
+  const today = new Date();
+  today.setHours(23, 59, 59, 0);
+  return PAID_LEAVE_SCHEDULE
+    .map(([months, days]) => {
+      const gd = new Date(base.getFullYear(), base.getMonth() + months, base.getDate());
+      const ex = new Date(gd.getFullYear() + 2, gd.getMonth(), gd.getDate());
+      return { id: `auto_${staff.id}_${months}`, staffId: staff.id,
+               grantDate: toYMD(gd), days, note: '自動付与', isAuto: true,
+               expiryDate: toYMD(ex) };
+    })
+    .filter(g => new Date(g.grantDate) <= today);
+}
+
+function calcPaidLeaveBalance(staffId) {
+  const staff = loadStaff().find(s => s.id === staffId);
+  if (!staff || staff.paidLeaveExempt) return null;
+  const today = new Date();
+  today.setHours(23, 59, 59, 0);
+
+  const auto   = calcAutoGrants(staff).filter(g => new Date(g.expiryDate) > today);
+  const manual = loadPaidLeaveGrants().filter(g => g.staffId === staffId);
+  const granted = [...auto, ...manual].reduce((a, g) => a + g.days, 0);
+  const used    = loadPaidLeaveUses().filter(u => u.staffId === staffId)
+                                     .reduce((a, u) => a + u.days, 0);
+  return { granted, used, balance: granted - used };
+}
+
+// 有給取得済み日付セット（バッジ表示用）
+function getPaidLeaveDateSet(staffId) {
+  return new Set(loadPaidLeaveUses().filter(u => u.staffId === staffId).map(u => u.date));
+}
+
+function renderPaidLeaveTab() {
+  const staffList = loadStaff().filter(s => !s.paidLeaveExempt && s.status !== '退職');
+  const today     = new Date();
+
+  let html = '';
+
+  if (staffList.length === 0) {
+    html = '<div class="empty-state"><div class="icon">🏖️</div><p>有給管理対象のスタッフがいません。<br>スタッフ管理で有給起算日を設定してください。</p></div>';
+    document.getElementById('pl-summary-area').innerHTML = html;
+    return;
+  }
+
+  html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+    <button class="btn btn-primary btn-sm" onclick="openPaidLeaveUseModal()">＋ 消化記録を追加</button>
+    <button class="btn btn-secondary btn-sm" onclick="openPaidLeaveGrantModal()">➕ 手動付与・補正</button>
+  </div>`;
+
+  for (const staff of staffList) {
+    const bal   = calcPaidLeaveBalance(staff.id);
+    const auto  = calcAutoGrants(staff);
+    const manual= loadPaidLeaveGrants().filter(g => g.staffId === staff.id);
+    const uses  = loadPaidLeaveUses().filter(u => u.staffId === staff.id)
+                    .sort((a, b) => b.date.localeCompare(a.date));
+
+    const balStr   = bal ? bal.balance : 0;
+    const balColor = balStr < 0 ? 'color:#e53e3e;font-weight:700;' : balStr === 0 ? 'color:#718096;' : 'color:#2d6a4f;font-weight:700;';
+    const balLabel = balStr < 0 ? `${balStr}日（前借り中）` : `${balStr}日`;
+
+    // 次回付与日
+    let nextGrant = '';
+    if (staff.paidLeaveBaseDate) {
+      const base = new Date(staff.paidLeaveBaseDate);
+      for (const [months, days] of PAID_LEAVE_SCHEDULE) {
+        const gd = new Date(base.getFullYear(), base.getMonth() + months, base.getDate());
+        if (gd > today) { nextGrant = `次回付与: ${toYMD(gd)}（${days}日）`; break; }
+      }
+      if (!nextGrant) nextGrant = '付与上限（20日）に達しています';
+    }
+
+    html += `<div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <span style="font-size:1rem;font-weight:700;">${escHtml(staff.name)}</span>
+          <span class="text-sm text-muted" style="margin-left:8px;">起算日: ${staff.paidLeaveBaseDate || '未設定'}</span>
+        </div>
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+          <span class="text-sm">付与累計: <strong>${bal ? bal.granted : 0}日</strong></span>
+          <span class="text-sm">消化済み: <strong>${bal ? bal.used : 0}日</strong></span>
+          <span class="text-sm">残日数: <strong style="${balColor}">${balLabel}</strong></span>
+        </div>
+      </div>
+      ${nextGrant ? `<div class="text-sm text-muted" style="margin-top:4px;">${escHtml(nextGrant)}</div>` : ''}
+
+      <!-- 付与履歴 -->
+      <details style="margin-top:12px;">
+        <summary class="text-sm" style="cursor:pointer;color:#4a5568;font-weight:600;">付与履歴（自動＋手動）</summary>
+        <table class="data-table" style="margin-top:8px;font-size:0.82rem;">
+          <thead><tr><th>付与日</th><th>日数</th><th>有効期限</th><th>種別</th><th></th></tr></thead>
+          <tbody>
+            ${[...auto.map(g => ({ ...g, isAuto: true })), ...manual.map(g => ({ ...g, isAuto: false }))]
+              .sort((a, b) => a.grantDate.localeCompare(b.grantDate))
+              .map(g => `<tr>
+                <td>${g.grantDate}</td>
+                <td>${g.days}日</td>
+                <td>${g.expiryDate || (g.isAuto ? '' : '—')}</td>
+                <td>${g.isAuto ? '<span class="text-muted">自動</span>' : '<span style="color:#2b6cb0;">手動</span>'}</td>
+                <td>${g.isAuto ? '' : `<button class="btn btn-sm" style="padding:2px 8px;font-size:0.75rem;" onclick="deletePaidLeaveGrantById('${g.id}')">削除</button>`}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </details>
+
+      <!-- 消化記録 -->
+      <div style="margin-top:12px;">
+        <div class="text-sm" style="font-weight:600;color:#4a5568;margin-bottom:6px;">消化記録</div>
+        ${uses.length === 0
+          ? '<div class="text-sm text-muted">まだ消化記録がありません</div>'
+          : `<table class="data-table" style="font-size:0.82rem;">
+              <thead><tr><th>日付</th><th>日数</th><th>備考</th><th></th></tr></thead>
+              <tbody>
+                ${uses.map(u => `<tr>
+                  <td>${u.date}</td>
+                  <td>${u.days}日</td>
+                  <td>${escHtml(u.note || '')}</td>
+                  <td><button class="btn btn-sm" style="padding:2px 8px;font-size:0.75rem;" onclick="deletePaidLeaveUseById('${u.id}')">削除</button></td>
+                </tr>`).join('')}
+              </tbody>
+            </table>`}
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('pl-summary-area').innerHTML = html;
+}
+
+function openPaidLeaveUseModal(staffId = '') {
+  document.getElementById('alert-pl-use').innerHTML = '';
+  document.getElementById('pl-use-edit-id').value   = '';
+  document.getElementById('pl-use-date-input').value = toYMD(new Date());
+  document.getElementById('pl-use-days-input').value = '1';
+  document.getElementById('pl-use-note-input').value = '';
+
+  const sel = document.getElementById('pl-use-staff-sel');
+  sel.innerHTML = loadStaff()
+    .filter(s => !s.paidLeaveExempt && s.status !== '退職')
+    .map(s => `<option value="${s.id}"${s.id === staffId ? ' selected' : ''}>${escHtml(s.name)}</option>`)
+    .join('');
+  openModal('modal-pl-use');
+}
+
+function savePaidLeaveUseFromModal() {
+  const staffId = document.getElementById('pl-use-staff-sel').value;
+  const date    = document.getElementById('pl-use-date-input').value;
+  const days    = parseFloat(document.getElementById('pl-use-days-input').value);
+  const note    = document.getElementById('pl-use-note-input').value.trim();
+
+  if (!staffId || !date) {
+    showAlert('alert-pl-use', 'スタッフと日付を入力してください', 'error', 0); return;
+  }
+
+  const rec = { id: uid(), staffId, date, days, note };
+  const list = loadPaidLeaveUses();
+  list.push(rec);
+  savePaidLeaveUses(list);
+  closeModal('modal-pl-use');
+  renderPaidLeaveTab();
+  showSyncToast('同期中...', 'syncing');
+  gasRequest('savePaidLeaveUse', rec)
+    .then(() => showSyncToast('保存完了', 'ok', 2000))
+    .catch(err => showGasError('有給消化保存エラー: ' + err.message));
+}
+
+function deletePaidLeaveUseById(id) {
+  if (!confirm('この消化記録を削除しますか？')) return;
+  savePaidLeaveUses(loadPaidLeaveUses().filter(u => u.id !== id));
+  renderPaidLeaveTab();
+  gasRequest('deletePaidLeaveUse', { id }).catch(err => showGasError('削除エラー: ' + err.message));
+}
+
+function openPaidLeaveGrantModal(staffId = '') {
+  document.getElementById('alert-pl-grant').innerHTML = '';
+  document.getElementById('pl-grant-edit-id').value   = '';
+  document.getElementById('pl-grant-date-input').value = toYMD(new Date());
+  document.getElementById('pl-grant-days-input').value = '';
+  document.getElementById('pl-grant-note-input').value = '';
+
+  const sel = document.getElementById('pl-grant-staff-sel');
+  sel.innerHTML = loadStaff()
+    .filter(s => !s.paidLeaveExempt && s.status !== '退職')
+    .map(s => `<option value="${s.id}"${s.id === staffId ? ' selected' : ''}>${escHtml(s.name)}</option>`)
+    .join('');
+  openModal('modal-pl-grant');
+}
+
+function savePaidLeaveGrantFromModal() {
+  const staffId   = document.getElementById('pl-grant-staff-sel').value;
+  const grantDate = document.getElementById('pl-grant-date-input').value;
+  const days      = parseFloat(document.getElementById('pl-grant-days-input').value);
+  const note      = document.getElementById('pl-grant-note-input').value.trim();
+
+  if (!staffId || !grantDate) {
+    showAlert('alert-pl-grant', 'スタッフと付与日を入力してください', 'error', 0); return;
+  }
+  if (isNaN(days) || days <= 0) {
+    showAlert('alert-pl-grant', '付与日数は0より大きい値を入力してください', 'error', 0); return;
+  }
+
+  const rec = { id: uid(), staffId, grantDate, days, note };
+  const list = loadPaidLeaveGrants();
+  list.push(rec);
+  savePaidLeaveGrants(list);
+  closeModal('modal-pl-grant');
+  renderPaidLeaveTab();
+  showSyncToast('同期中...', 'syncing');
+  gasRequest('savePaidLeaveGrant', rec)
+    .then(() => showSyncToast('保存完了', 'ok', 2000))
+    .catch(err => showGasError('付与記録保存エラー: ' + err.message));
+}
+
+function deletePaidLeaveGrantById(id) {
+  if (!confirm('この手動付与記録を削除しますか？')) return;
+  savePaidLeaveGrants(loadPaidLeaveGrants().filter(g => g.id !== id));
+  renderPaidLeaveTab();
+  gasRequest('deletePaidLeaveGrant', { id }).catch(err => showGasError('削除エラー: ' + err.message));
+}
+
+/* ============================================================
    GAS Communication Layer
 ============================================================ */
 
@@ -6432,8 +6783,30 @@ function parseStaffRows(rows) {
     birthdate:      String(r[15] || ''),
     dependents:     r[16] ? Number(r[16]) : 0,
     stdSalary:      r[17] ? Number(r[17]) : null,
-    socialIns:      r[18] === true || r[18] === 'true' || r[18] === 'TRUE' || r[18] === 1,
-    employIns:      r[19] === true || r[19] === 'true' || r[19] === 'TRUE' || r[19] === 1,
+    socialIns:          r[18] === true || r[18] === 'true' || r[18] === 'TRUE' || r[18] === 1,
+    employIns:          r[19] === true || r[19] === 'true' || r[19] === 'TRUE' || r[19] === 1,
+    paidLeaveBaseDate:  String(r[20] || ''),
+    paidLeaveExempt:    r[21] === true || r[21] === 'true' || r[21] === 'TRUE' || r[21] === 1,
+  }));
+}
+
+function parsePaidLeaveGrantRows(rows) {
+  return rows.filter(r => r[0] != null && String(r[0]).trim() !== '').map(r => ({
+    id:        String(r[0]),
+    staffId:   String(r[1] || ''),
+    grantDate: String(r[2] || ''),
+    days:      Number(r[3]) || 0,
+    note:      String(r[4] || ''),
+  }));
+}
+
+function parsePaidLeaveUseRows(rows) {
+  return rows.filter(r => r[0] != null && String(r[0]).trim() !== '').map(r => ({
+    id:      String(r[0]),
+    staffId: String(r[1] || ''),
+    date:    String(r[2] || ''),
+    days:    Number(r[3]) || 0,
+    note:    String(r[4] || ''),
   }));
 }
 
@@ -6593,9 +6966,11 @@ function staffToGas(s) {
     monthlySalary:  s.monthlySalary  ?? '',
     birthdate:      s.birthdate      || '',
     dependents:     s.dependents     ?? 0,
-    stdSalary:      s.stdSalary      ?? '',
-    socialIns:      !!s.socialIns,
-    employIns:      !!s.employIns,
+    stdSalary:          s.stdSalary          ?? '',
+    socialIns:          !!s.socialIns,
+    employIns:          !!s.employIns,
+    paidLeaveBaseDate:  s.paidLeaveBaseDate  || '',
+    paidLeaveExempt:    !!s.paidLeaveExempt,
   };
 }
 
@@ -6715,6 +7090,8 @@ async function fetchAllFromGas() {
   savePayslips(parsePayslipRows(validRows(raw.payslips)));
   saveShiftRequests(parseShiftRequestRows(validRows(raw.shiftRequest)));
   saveSoftConstraints(parseSoftConstraintRows(validRows(raw.softConstraint)));
+  savePaidLeaveGrants(parsePaidLeaveGrantRows(validRows(raw.paidLeaveGrants || [])));
+  savePaidLeaveUses(parsePaidLeaveUseRows(validRows(raw.paidLeaveUses || [])));
 }
 
 /* ============================================================

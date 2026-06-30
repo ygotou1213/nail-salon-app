@@ -1,9 +1,11 @@
-const SHEET_NAME_STAFF       = 'スタッフ';
-const SHEET_NAME_ATTENDANCE  = '勤怠';
-const SHEET_NAME_SHIFT       = 'シフト';
-const SHEET_NAME_SHIFT_REQ   = 'シフト希望';
-const SHEET_NAME_CONSTRAINT  = 'ソフト制約';
-const SHEET_NAME_PAYSLIP     = '給与明細';
+const SHEET_NAME_STAFF             = 'スタッフ';
+const SHEET_NAME_ATTENDANCE        = '勤怠';
+const SHEET_NAME_SHIFT             = 'シフト';
+const SHEET_NAME_SHIFT_REQ         = 'シフト希望';
+const SHEET_NAME_CONSTRAINT        = 'ソフト制約';
+const SHEET_NAME_PAYSLIP           = '給与明細';
+const SHEET_NAME_PAID_LEAVE_GRANT  = '有給付与';
+const SHEET_NAME_PAID_LEAVE_USE    = '有給消化';
 
 const SERVER_TOKEN_REQUIRED_ACTIONS = [
   // 第1段階では準備のみ。ここに管理者系actionを追加すると検証が有効になる。
@@ -43,8 +45,12 @@ function doGet(e) {
       case 'deleteShiftRequest':  result = deleteShiftRequest(e.parameter); break;
       case 'saveConstraint':      result = saveConstraint(e.parameter); break;
       case 'deleteConstraint':    result = deleteConstraint(e.parameter); break;
-      case 'savePayslip':         result = savePayslip(e.parameter); break;
-      case 'queryMonthly':        result = queryMonthly(e.parameter); break;
+      case 'savePayslip':           result = savePayslip(e.parameter); break;
+      case 'queryMonthly':          result = queryMonthly(e.parameter); break;
+      case 'savePaidLeaveGrant':    result = savePaidLeaveGrant(e.parameter); break;
+      case 'deletePaidLeaveGrant':  result = deletePaidLeaveGrant(e.parameter); break;
+      case 'savePaidLeaveUse':      result = savePaidLeaveUse(e.parameter); break;
+      case 'deletePaidLeaveUse':    result = deletePaidLeaveUse(e.parameter); break;
       default: result = { error: 'Unknown action: ' + action };
     }
   } catch(e) {
@@ -80,7 +86,11 @@ function doPost(e) {
       case 'deleteShiftRequest':  result = deleteShiftRequest(data); break;
       case 'saveConstraint':      result = saveConstraint(data); break;
       case 'deleteConstraint':    result = deleteConstraint(data); break;
-      case 'savePayslip':         result = savePayslip(data); break;
+      case 'savePayslip':           result = savePayslip(data); break;
+      case 'savePaidLeaveGrant':    result = savePaidLeaveGrant(data); break;
+      case 'deletePaidLeaveGrant':  result = deletePaidLeaveGrant(data); break;
+      case 'savePaidLeaveUse':      result = savePaidLeaveUse(data); break;
+      case 'deletePaidLeaveUse':    result = deletePaidLeaveUse(data); break;
       default: result = { error: 'Unknown action: ' + action };
     }
   } catch(e) {
@@ -134,13 +144,17 @@ function getAllData() {
   const reqSheet        = getSheet(SHEET_NAME_SHIFT_REQ);
   const conSheet        = getSheet(SHEET_NAME_CONSTRAINT);
   const payslipSheet    = getSheet(SHEET_NAME_PAYSLIP);
+  const plGrantSheet    = getSheet(SHEET_NAME_PAID_LEAVE_GRANT);
+  const plUseSheet      = getSheet(SHEET_NAME_PAID_LEAVE_USE);
   return {
-    staff:        staffSheet.getLastRow()      > 0 ? staffSheet.getDataRange().getValues()      : [],
-    attendance:   attendanceSheet.getLastRow() > 0 ? attendanceSheet.getDataRange().getValues() : [],
-    shift:        shiftSheet.getLastRow()      > 0 ? normalizeShiftRows(shiftSheet.getDataRange().getValues()) : [],
-    shiftRequest: reqSheet.getLastRow()        > 0 ? reqSheet.getDataRange().getValues()        : [],
-    softConstraint: conSheet.getLastRow()      > 0 ? conSheet.getDataRange().getValues()        : [],
-    payslips:     payslipSheet.getLastRow()    > 0 ? payslipSheet.getDataRange().getValues()    : [],
+    staff:           staffSheet.getLastRow()      > 0 ? staffSheet.getDataRange().getValues()      : [],
+    attendance:      attendanceSheet.getLastRow() > 0 ? attendanceSheet.getDataRange().getValues() : [],
+    shift:           shiftSheet.getLastRow()      > 0 ? normalizeShiftRows(shiftSheet.getDataRange().getValues()) : [],
+    shiftRequest:    reqSheet.getLastRow()        > 0 ? reqSheet.getDataRange().getValues()        : [],
+    softConstraint:  conSheet.getLastRow()        > 0 ? conSheet.getDataRange().getValues()        : [],
+    payslips:        payslipSheet.getLastRow()    > 0 ? payslipSheet.getDataRange().getValues()    : [],
+    paidLeaveGrants: plGrantSheet.getLastRow()    > 0 ? plGrantSheet.getDataRange().getValues()    : [],
+    paidLeaveUses:   plUseSheet.getLastRow()      > 0 ? plUseSheet.getDataRange().getValues()      : [],
   };
 }
 
@@ -149,15 +163,17 @@ function saveStaff(data) {
   const lastRow = sheet.getLastRow();
   const values = lastRow > 0 ? sheet.getDataRange().getValues() : [];
   const idx = values.findIndex(r => r[0] === data.id);
-  const socialIns = (data.socialIns === 'true' || data.socialIns === true);
-  const employIns = (data.employIns === 'true' || data.employIns === true);
+  const socialIns       = (data.socialIns       === 'true' || data.socialIns       === true);
+  const employIns       = (data.employIns       === 'true' || data.employIns       === true);
+  const paidLeaveExempt = (data.paidLeaveExempt === 'true' || data.paidLeaveExempt === true);
   const row = [
     data.id, data.name, data.hourlyWage, data.transportFee,
     data.monthlyCommute, data.status, data.employmentType,
     data.weeklyDays, data.commuteRoute, data.address,
     data.email, data.phone, data.memo,
     data.payType, data.monthlySalary, data.birthdate,
-    data.dependents, data.stdSalary, socialIns, employIns
+    data.dependents, data.stdSalary, socialIns, employIns,
+    data.paidLeaveBaseDate || '', paidLeaveExempt
   ];
   if (idx >= 0) {
     sheet.getRange(idx + 1, 1, 1, row.length).setValues([row]);
@@ -468,6 +484,52 @@ function queryMonthly(params) {
   });
 
   return { staff: matchedStaff, attendance: matchedAtt };
+}
+
+// Columns: id, staffId, grantDate, days, note
+function savePaidLeaveGrant(data) {
+  const sheet  = getSheet(SHEET_NAME_PAID_LEAVE_GRANT);
+  const values = sheet.getLastRow() > 0 ? sheet.getDataRange().getValues() : [];
+  const row    = [data.id, data.staffId, data.grantDate, Number(data.days) || 0, data.note || ''];
+  const idx    = values.findIndex(r => r[0] === data.id);
+  if (idx >= 0) {
+    sheet.getRange(idx + 1, 1, 1, row.length).setValues([row]);
+  } else {
+    sheet.appendRow(row);
+  }
+  return { success: true };
+}
+
+function deletePaidLeaveGrant(data) {
+  const sheet  = getSheet(SHEET_NAME_PAID_LEAVE_GRANT);
+  if (sheet.getLastRow() === 0) return { success: true };
+  const values = sheet.getDataRange().getValues();
+  const idx    = values.findIndex(r => r[0] === data.id);
+  if (idx >= 0) sheet.deleteRow(idx + 1);
+  return { success: true };
+}
+
+// Columns: id, staffId, date, days, note
+function savePaidLeaveUse(data) {
+  const sheet  = getSheet(SHEET_NAME_PAID_LEAVE_USE);
+  const values = sheet.getLastRow() > 0 ? sheet.getDataRange().getValues() : [];
+  const row    = [data.id, data.staffId, data.date, Number(data.days) || 0, data.note || ''];
+  const idx    = values.findIndex(r => r[0] === data.id);
+  if (idx >= 0) {
+    sheet.getRange(idx + 1, 1, 1, row.length).setValues([row]);
+  } else {
+    sheet.appendRow(row);
+  }
+  return { success: true };
+}
+
+function deletePaidLeaveUse(data) {
+  const sheet  = getSheet(SHEET_NAME_PAID_LEAVE_USE);
+  if (sheet.getLastRow() === 0) return { success: true };
+  const values = sheet.getDataRange().getValues();
+  const idx    = values.findIndex(r => r[0] === data.id);
+  if (idx >= 0) sheet.deleteRow(idx + 1);
+  return { success: true };
 }
 
 // Columns: id, staffId, yearMonth, allowance, healthIns, careIns, pension, employmentIns, incomeTax, residentTax, cashPay, note
