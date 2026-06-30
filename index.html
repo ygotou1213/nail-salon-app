@@ -6785,7 +6785,7 @@ function parseStaffRows(rows) {
     stdSalary:      r[17] ? Number(r[17]) : null,
     socialIns:          r[18] === true || r[18] === 'true' || r[18] === 'TRUE' || r[18] === 1,
     employIns:          r[19] === true || r[19] === 'true' || r[19] === 'TRUE' || r[19] === 1,
-    paidLeaveBaseDate:  String(r[20] || ''),
+    paidLeaveBaseDate:  normalizeGasDateValue(r[20]),
     paidLeaveExempt:    r[21] === true || r[21] === 'true' || r[21] === 'TRUE' || r[21] === 1,
   }));
 }
