@@ -6794,7 +6794,7 @@ function parsePaidLeaveGrantRows(rows) {
   return rows.filter(r => r[0] != null && String(r[0]).trim() !== '').map(r => ({
     id:        String(r[0]),
     staffId:   String(r[1] || ''),
-    grantDate: String(r[2] || ''),
+    grantDate: normalizeGasDateValue(r[2]),
     days:      Number(r[3]) || 0,
     note:      String(r[4] || ''),
   }));
@@ -6804,7 +6804,7 @@ function parsePaidLeaveUseRows(rows) {
   return rows.filter(r => r[0] != null && String(r[0]).trim() !== '').map(r => ({
     id:      String(r[0]),
     staffId: String(r[1] || ''),
-    date:    String(r[2] || ''),
+    date:    normalizeGasDateValue(r[2]),
     days:    Number(r[3]) || 0,
     note:    String(r[4] || ''),
   }));
