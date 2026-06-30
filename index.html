@@ -6527,7 +6527,7 @@ function getPaidLeaveDateSet(staffId) {
 }
 
 function renderPaidLeaveTab() {
-  const staffList = loadStaff().filter(s => !s.paidLeaveExempt && s.status === '在籍中');
+  const staffList = loadStaff().filter(s => !s.paidLeaveExempt && s.status === '在籍中' && s.paidLeaveBaseDate);
   const today     = new Date();
 
   let html = '';
