@@ -6527,7 +6527,7 @@ function getPaidLeaveDateSet(staffId) {
 }
 
 function renderPaidLeaveTab() {
-  const staffList = loadStaff().filter(s => !s.paidLeaveExempt && s.status !== '退職');
+  const staffList = loadStaff().filter(s => !s.paidLeaveExempt && s.status === '在籍中');
   const today     = new Date();
 
   let html = '';
@@ -6630,7 +6630,7 @@ function openPaidLeaveUseModal(staffId = '') {
 
   const sel = document.getElementById('pl-use-staff-sel');
   sel.innerHTML = loadStaff()
-    .filter(s => !s.paidLeaveExempt && s.status !== '退職')
+    .filter(s => !s.paidLeaveExempt && s.status === '在籍中')
     .map(s => `<option value="${s.id}"${s.id === staffId ? ' selected' : ''}>${escHtml(s.name)}</option>`)
     .join('');
   openModal('modal-pl-use');
@@ -6674,7 +6674,7 @@ function openPaidLeaveGrantModal(staffId = '') {
 
   const sel = document.getElementById('pl-grant-staff-sel');
   sel.innerHTML = loadStaff()
-    .filter(s => !s.paidLeaveExempt && s.status !== '退職')
+    .filter(s => !s.paidLeaveExempt && s.status === '在籍中')
     .map(s => `<option value="${s.id}"${s.id === staffId ? ' selected' : ''}>${escHtml(s.name)}</option>`)
     .join('');
   openModal('modal-pl-grant');
