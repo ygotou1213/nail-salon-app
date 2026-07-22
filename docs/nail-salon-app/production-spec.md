@@ -112,6 +112,8 @@ GAS APIは第1段階時点でスタッフ打刻・管理者操作の多くが従
 GitHub Pages（`index.html`本番配信）、Vercel（API用Next.jsアプリ）、Google Apps Script（Sheetsへの
 読み書きAPI、Web Appデプロイ）、Google Sheets（実データ保存先）、祝日API。
 
+**GAS反映時の注意**：`clasp push`だけではWebApp URLは更新されない。`clasp deploy --deploymentId <ID> -d "<説明>"`まで実行して初めて本番に反映される（2026-04-26確認）。
+
 ## 17. セキュリティ状態
 
 改善済み：管理者パスワードのフロントHTML除去、管理者ログインのVercel API検証、HttpOnly Cookieセッション。
