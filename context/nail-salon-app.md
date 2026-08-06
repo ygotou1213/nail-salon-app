@@ -6,7 +6,7 @@
 
 | 項目 | 内容 |
 |---|---|
-| 最終更新日 | 2026-05-23 |
+| 最終更新日 | 2026-08-06 |
 | PJTスラッグ | `nail-salon-app`（リポジトリ名と一致） |
 | 収容リポジトリ | `nail-salon-app`（GitHub: ygotou1213/nail-salon-app、本番: https://ygotou1213.github.io/nail-salon-app/） |
 
