@@ -800,6 +800,14 @@
       color: var(--rose);
     }
 
+    .fetch-error-icon { font-size: 2.5rem; }
+    .fetch-error-sub {
+      font-size: 0.8rem;
+      color: var(--text-sub, #888);
+      text-align: center;
+      line-height: 1.6;
+    }
+
     /* Sync toast (non-blocking notification) */
     .sync-toast {
       position: fixed;
@@ -1660,6 +1668,14 @@
 <div id="loading-overlay" class="loading-overlay">
   <div class="loading-spinner"></div>
   <p class="loading-msg" id="loading-msg">データを読み込んでいます...</p>
+</div>
+
+<!-- Fetch error overlay (shown when initial GAS fetch fails even after retries) -->
+<div id="fetch-error-overlay" class="loading-overlay hidden">
+  <div class="fetch-error-icon">⚠️</div>
+  <p class="loading-msg" id="fetch-error-msg">データの取得に失敗しました</p>
+  <p class="fetch-error-sub">通信状況をご確認のうえ、再読み込みしてください。<br>スタッフ・勤怠データは消えていません。</p>
+  <button class="btn btn-primary" onclick="location.reload()">再読み込み</button>
 </div>
 
 <!-- Sync toast (shown during / after background GAS calls) -->
@@ -2860,11 +2876,14 @@ async function initApp() {
   // Fetch all data from GAS before rendering
   showLoading('データを読み込んでいます...');
   try {
-    await fetchAllFromGas();
+    await fetchAllFromGasWithRetry();
   } catch (err) {
     hideLoading();
-    showGasError('初回データ取得に失敗しました: ' + err.message);
-    // Render with empty cache so app is still usable
+    // Do NOT render tabs with an empty cache — that looks identical to
+    // "no staff registered" and has caused real confusion in production.
+    // Block on a dedicated error screen instead until the user reloads.
+    showFetchErrorOverlay('データの取得に失敗しました: ' + err.message);
+    return;
   }
   hideLoading();
 
@@ -7092,6 +7111,35 @@ async function fetchAllFromGas() {
   saveSoftConstraints(parseSoftConstraintRows(validRows(raw.softConstraint)));
   savePaidLeaveGrants(parsePaidLeaveGrantRows(validRows(raw.paidLeaveGrants || [])));
   savePaidLeaveUses(parsePaidLeaveUseRows(validRows(raw.paidLeaveUses || [])));
+}
+
+/**
+ * Initial fetch with a few automatic retries. Covers transient failures
+ * (network blip, GAS cold start) without the user ever noticing, so a
+ * hard error screen only appears when GAS is genuinely unreachable.
+ */
+async function fetchAllFromGasWithRetry(maxAttempts = 3, delayMs = 1500) {
+  let lastErr;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await fetchAllFromGas();
+      return;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < maxAttempts) {
+        showLoading(`データ取得に失敗しました。再試行しています…（${attempt}/${maxAttempts}）`);
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+/** Show the blocking full-screen error state (initial fetch exhausted all retries) */
+function showFetchErrorOverlay(msg) {
+  document.getElementById('fetch-error-msg').textContent = msg;
+  document.getElementById('fetch-error-overlay').classList.remove('hidden');
+  console.warn('[GAS Error]', msg);
 }
 
 /* ============================================================
