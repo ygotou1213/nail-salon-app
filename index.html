@@ -6738,18 +6738,41 @@ function deletePaidLeaveGrantById(id) {
 /**
  * Send a request to GAS.
  * All requests use GET with URL parameters to avoid CORS preflight issues.
+ *
+ * GAS Web Apps occasionally fail a single request transiently (network
+ * blip, GAS cold start — the same class of issue fixed for the initial
+ * getAll load on 2026-08-06). Retries here cover every save/delete call
+ * site automatically. Pass { retry: false } only when the caller already
+ * has its own outer retry loop (fetchAllFromGasWithRetry), to avoid
+ * retrying twice.
  */
-async function gasRequest(action, payload = {}) {
-  const url = new URL(GAS_URL);
-  url.searchParams.set('action', action);
-  for (const [k, v] of Object.entries(payload)) {
-    url.searchParams.set(k, v === null || v === undefined ? '' : String(v));
+async function gasRequest(action, payload = {}, { retry = true } = {}) {
+  const attempt = async () => {
+    const url = new URL(GAS_URL);
+    url.searchParams.set('action', action);
+    for (const [k, v] of Object.entries(payload)) {
+      url.searchParams.set(k, v === null || v === undefined ? '' : String(v));
+    }
+    const res = await fetch(url.toString(), { redirect: 'follow', cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    return json;
+  };
+
+  if (!retry) return attempt();
+
+  const maxAttempts = 3, delayMs = 1500;
+  let lastErr;
+  for (let i = 1; i <= maxAttempts; i++) {
+    try {
+      return await attempt();
+    } catch (err) {
+      lastErr = err;
+      if (i < maxAttempts) await new Promise(r => setTimeout(r, delayMs));
+    }
   }
-  const res = await fetch(url.toString(), { redirect: 'follow', cache: 'no-store' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
+  throw lastErr;
 }
 
 /* ---- Loading overlay ---- */
@@ -7036,18 +7059,32 @@ function gasSyncLog(l) {
 }
 
 async function gasPostBulk(action, payload = {}) {
-  const body = JSON.stringify({ action, ...payload });
-  const res = await fetch(GAS_URL, {
-    method: 'POST',
-    body,
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    redirect: 'follow',
-    cache: 'no-store',
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
+  const attempt = async () => {
+    const body = JSON.stringify({ action, ...payload });
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      body,
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      redirect: 'follow',
+      cache: 'no-store',
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    return json;
+  };
+
+  const maxAttempts = 3, delayMs = 1500;
+  let lastErr;
+  for (let i = 1; i <= maxAttempts; i++) {
+    try {
+      return await attempt();
+    } catch (err) {
+      lastErr = err;
+      if (i < maxAttempts) await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
+  throw lastErr;
 }
 
 /** Sync all shift assignments for a given month (fire-and-forget) */
@@ -7098,7 +7135,10 @@ function parsePayslipRows(rows) {
 
 /** Initial full fetch from GAS → populate cache */
 async function fetchAllFromGas() {
-  const raw = await gasRequest('getAll');
+  // retry:false — fetchAllFromGasWithRetry already retries this whole call
+  // with its own progress UI; retrying inside gasRequest too would silently
+  // triple each of its attempts.
+  const raw = await gasRequest('getAll', {}, { retry: false });
 
   // GAS returns 2D arrays; an empty sheet returns [['']] — filter that out
   const validRows = arr => (arr || []).filter(r => Array.isArray(r) && r.length > 1);
